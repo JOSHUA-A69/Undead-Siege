@@ -227,7 +227,7 @@ def time_rush_mode(screen, time_limit=300):
 
     # Zombie setup
     z_img = [pygame.image.load('./enemy/' + file) for file in os.listdir('enemy/')]
-    z_info = [[6, 10, 50, 50, 10]]  # Speed increased for time rush mode
+    z_info = [[3, 5, 10, 100, 2], [3, 5, 20, 100, 4], [3, 5, 20, 100, 6], [3, 5, 20, 100, 8], [3, 5, 20, 100, 10], [3, 5, 20, 100, 12], [15, 20, 100, 100, 40]]
     zombieGroup = pygame.sprite.Group()
 
     # Bullet setup
@@ -267,7 +267,9 @@ def time_rush_mode(screen, time_limit=300):
         spawn_timer += 1
         if spawn_timer >= 40:
             spawn_timer = 0
-            zombie = sprite_module.Zombie(screen, *z_info[0], z_img[0], 0, player.rect.center)
+            # Adjusted zombie stats: [speed, damage, health, attack_speed, score_value]
+            zombie_stats = [3, 5, 150, 50, 10]  # Increased health from 100 to 150
+            zombie = sprite_module.Zombie(screen, *zombie_stats, z_img[0], 0, player.rect.center)
             zombieGroup.add(zombie)
             allSprites.add(zombie)
 
@@ -313,11 +315,14 @@ def time_rush_mode(screen, time_limit=300):
                     break
 
         # Handle zombie kills and scoring
-        hits = pygame.sprite.groupcollide(bullet_hitbox, zombieGroup, True, True)
-        for hit in hits:
-            score += 10
-            player.add_gold(2)
-            gold_text.set_variable(0, str(player.get_gold()))
+        hits = pygame.sprite.groupcollide(bullet_hitbox, zombieGroup, True, False)
+        for bullet_hit in hits:
+            for zombie in hits[bullet_hit]:
+                if not zombie.damage_hp(10):  # If zombie dies
+                    score += zombie.get_value()
+                    player.add_gold(2)
+                    zombie.kill()
+                    gold_text.set_variable(0, str(player.get_gold()))
 
         # Update displays
         score_text.set_variable(0, str(score))
@@ -455,11 +460,14 @@ def endless_horde_mode(screen):
                 break
 
         # Handle zombie kills and scoring
-        hits = pygame.sprite.groupcollide(bullet_hitbox, zombieGroup, True, True)
-        for hit in hits:
-            score += 10
-            player.add_gold(2)  # Add 2 gold per kill
-            gold_text.set_variable(0, str(player.get_gold()))  # Update gold display
+        hits = pygame.sprite.groupcollide(bullet_hitbox, zombieGroup, True, False)
+        for bullet_hit in hits:
+            for zombie in hits[bullet_hit]:
+                if not zombie.damage_hp(10):  # If zombie dies
+                    score += zombie.get_value()
+                    player.add_gold(2)
+                    zombie.kill()
+                    gold_text.set_variable(0, str(player.get_gold()))
 
         # Update displays
         score_text.set_variable(0, str(score))
@@ -804,7 +812,7 @@ def main():
                         c[bullet][0].slow()
                     
                     else:
-                        if not(c[bullet][0].damage_hp(bullet.get_damage())):
+                        if not c[bullet][0].damage_hp(bullet.get_damage()):
                             wave[c[bullet][0].get_zombie_type()] = wave[c[bullet][0].get_zombie_type()] - 1
                             powerup_chance = random.randint(0, 100)
                             if powerup_chance == 0:
