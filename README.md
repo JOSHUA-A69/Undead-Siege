@@ -1,42 +1,58 @@
-Python Game
-======
-A top down zombie shooter made using pygame
+# Undead Siege
+A top-down zombie shooter made using pygame
 
-Required
----------
-[Python v2.x](http://python.org/download/)
+## Required
+- Python 3.x
+- Pygame 1.9.1 or higher
 
-[Pygame 1.9.1](http://www.pygame.org/download.shtml)
+## Game Modes
 
-Details
---------
-This game has a score, wave number and zombies left in the current wave
+### Classic Mode
+- Wave-based survival with increasing difficulty
+- Every 5th wave spawns a boss zombie
+- Earn gold and score by killing zombies
+- Multiple weapon types available
 
-Every five waves a boss spawns
+### Time Rush Mode
+- Survive for 5 minutes
+- Fast-paced action
+- Score as many points as possible before time runs out
+- Basic weapon only
 
-There is active ammo for each weapon and when you run out you must reload from ammo that you current have.
-A green reloading bar will appear on top of the player. You cannot shot or switch weapons until it has finished
-reloading.
+### Endless Horde Mode
+- Survive as long as possible
+- Continuously increasing difficulty
+- More zombie types unlock as score increases
+- Basic weapon only
 
-HP: 350  
-Armour: 200
+## Player Stats
+- HP: 350
+- Armour: 200
 
-Weapons
+## Weapons
 * Pistol
 * Uzi
-* Slow Gun (does no damage but each hit decreases a zombie's speed)
-* Machine Gun (can hold to shoot)
-* Rail Gun (invisible bullet)
+* Slow Gun (slows zombies)
+* Machine Gun (automatic fire)
+* Rail Gun (powerful piercing shot)
 
+## Controls
+- WASD: Movement
+- Mouse: Aim and shoot
+- 1-5: Switch weapons (Classic mode only)
+- R: Reload
+- ESC: Pause menu
 
-Powerups are: 
-* 2x speed for 15s ![alt text](http://i.imgur.com/Eb0FN7a.png "2x Speed")
-* 2x damage for 15s ![alt text](http://i.imgur.com/c8w9wSg.png "2x Damage")
-* Heal HP by 100 ![alt text](http://i.imgur.com/Px1HCUe.png "Heal HP by 100")
-* Heal Armour by 100 ![alt text](http://i.imgur.com/XnNs0bw.png "Heal Armour by 100")
-* Ammo![alt text](http://i.imgur.com/Ubz4Etl.png "2x Damage")
-* Invincible for 15s ![alt text](http://i.imgur.com/BfJXMfn.png "2x Damage")
- 
+## Features
+- Dynamic wave system in Classic mode
+- Score tracking across all modes
+- Gold system for kills
+- Health and armor management
+- Pause menu system
+- Multiple zombie types with different behaviors
+- Boss battles in Classic mode
 
-
-![alt text](http://i.imgur.com/1wH5uKN.png "ZombieShooter")
+## Zombie Types
+- Basic Zombie
+- Special Zombies (4 types)
+- Boss Zombie (every 5th wave in Classic mode)
