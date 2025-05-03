@@ -4,13 +4,20 @@ pygame.init()
 pygame.mixer.init()
 screen = pygame.display.set_mode((1920, 1080), pygame.FULLSCREEN)
             
-def game_over_screen(screen):
-    '''Displays the Game Over screen with a retry button, background, and sound.'''
+def game_over_screen(screen, restart_callback, is_classic_mode=False):
+    '''Displays the Game Over screen with retry, back-to-menu, and main menu options.'''
     font = pygame.font.Font("American Captain.ttf", 100)  # Use American Captain font
     option_font = pygame.font.Font("American Captain.ttf", 50)  # Use American Captain font
     game_over_text = font.render("Game Over", True, (255, 0, 0))
-    retry_text = option_font.render("Retry", True, (255, 255, 255))
-    retry_rect = retry_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
+
+    # Button text changes based on mode
+    retry_text = "Retry" if not is_classic_mode else "Back to Menu"
+    retry_rendered_text = option_font.render(retry_text, True, (255, 255, 255))
+    retry_rect = retry_rendered_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
+
+    main_menu_text = "Main Menu"
+    main_menu_rendered_text = option_font.render(main_menu_text, True, (255, 255, 255))
+    main_menu_rect = main_menu_rendered_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 100))
 
     # Load game over background image and sound
     game_over_bg = pygame.transform.scale(pygame.image.load('./img/GameOverBG.png'), (1920, 1080))
@@ -21,34 +28,42 @@ def game_over_screen(screen):
     # Load hover and click sounds
     hover_sound = pygame.mixer.Sound("./sound/Button hover.ogg")
     click_sound = pygame.mixer.Sound("./sound/Button click.mp3")
-    hovered = False  # Track hover state
+    hovered = None  # Track hover state
 
     while True:
         screen.blit(game_over_bg, (0, 0))  # Display game over background
         screen.blit(game_over_text, (screen.get_width() // 2 - game_over_text.get_width() // 2, screen.get_height() // 2 - 150))
 
-        # Check for hover effect
-        if retry_rect.collidepoint(pygame.mouse.get_pos()):
-            if not hovered:
-                hover_sound.play()  # Play hover sound only once
-                hovered = True
-            pygame.draw.rect(screen, (255, 215, 0), retry_rect.inflate(30, 15))  # Toggle button style
-        else:
-            hovered = False
-            pygame.draw.rect(screen, (139, 69, 19), retry_rect.inflate(30, 15))  # Default button style
-
-        screen.blit(retry_text, retry_rect)
+        # Draw buttons and handle hover effects
+        for rect, text in [(retry_rect, retry_rendered_text), (main_menu_rect, main_menu_rendered_text)]:
+            if rect.collidepoint(pygame.mouse.get_pos()):
+                if hovered != rect:
+                    hover_sound.play()
+                    hovered = rect
+                pygame.draw.rect(screen, (255, 69, 69), rect.inflate(30, 15), border_radius=15)  # Highlight button with red tint
+            else:
+                if hovered == rect:
+                    hovered = None
+                pygame.draw.rect(screen, (139, 0, 0), rect.inflate(30, 15), border_radius=15)  # Default button style with red tint
+            screen.blit(text, rect)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
-            elif event.type == pygame.MOUSEBUTTONDOWN and retry_rect.collidepoint(event.pos):
-                click_sound.play()  # Play click sound
-                pygame.mixer.music.stop()  # Stop game over music
-                pygame.mixer.music.unload()  # Unload game over music
-                loading_screen(screen)
-                return True  # Return True to indicate retry
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if retry_rect.collidepoint(event.pos):
+                    click_sound.play()  # Play click sound
+                    pygame.mixer.music.stop()  # Stop game over music
+                    pygame.mixer.music.unload()  # Unload game over music
+                    restart_callback()  # Call the restart function (back to menu or retry)
+                    return  # Exit the game over screen
+                elif main_menu_rect.collidepoint(event.pos):
+                    click_sound.play()  # Play click sound
+                    pygame.mixer.music.stop()  # Stop game over music
+                    pygame.mixer.music.unload()  # Unload game over music
+                    main_menu(screen)  # Go back to the main menu
+                    return
 
         pygame.display.flip()
 
@@ -65,40 +80,57 @@ def main_menu(screen):
     '''Displays the main menu with game mode options.'''
     font = pygame.font.Font("American Captain.ttf", 100)
     option_font = pygame.font.Font("American Captain.ttf", 50)
+    studio_font = pygame.font.Font("American Captain.ttf", 30)  # Smaller font for "JNL Studio"
+
+    # Render texts
+    studio_text = studio_font.render("JNL Studio", True, (255, 255, 255))  # White color for "JNL Studio"
     title_text = font.render("Undead Siege", True, (255, 255, 255))
     classic_text = option_font.render("Classic Mode", True, (255, 255, 255))
     time_rush_text = option_font.render("Time Rush Mode", True, (255, 255, 255))
     endless_text = option_font.render("Endless Horde Mode", True, (255, 255, 255))
+    boss_text = option_font.render("Boss Mode", True, (255, 255, 255))
     exit_text = option_font.render("Exit", True, (255, 255, 255))
 
-    classic_rect = classic_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
-    time_rush_rect = time_rush_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 100))
-    endless_rect = endless_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 200))
+    # Define button positions
+    classic_rect = classic_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 - 100))
+    time_rush_rect = time_rush_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
+    endless_rect = endless_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 100))
+    boss_rect = boss_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 200))
     exit_rect = exit_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 300))
 
+    # Load menu background and music
     menu_bg = pygame.transform.scale(pygame.image.load('./img/MenuBG.png'), (1920, 1080))
     pygame.mixer.music.load("./sound/Menu soundtrack.mp3")
     pygame.mixer.music.set_volume(0.5)
     pygame.mixer.music.play(-1)
 
+    # Load hover and click sounds
     hover_sound = pygame.mixer.Sound("./sound/Button hover.ogg")
     click_sound = pygame.mixer.Sound("./sound/Button click.mp3")
     hovered = None
 
     while True:
         screen.blit(menu_bg, (0, 0))
-        screen.blit(title_text, (screen.get_width() // 2 - title_text.get_width() // 2, screen.get_height() // 2 - 200))
 
-        for rect, text in [(classic_rect, classic_text), (time_rush_rect, time_rush_text), (endless_rect, endless_text), (exit_rect, exit_text)]:
+        # Display "JNL Studio" above the title
+        screen.blit(studio_text, (screen.get_width() // 2 - studio_text.get_width() // 2, screen.get_height() // 2 - 400))
+
+        # Display the title
+        screen.blit(title_text, (screen.get_width() // 2 - title_text.get_width() // 2, screen.get_height() // 2 - 300))
+
+        # Draw buttons and handle hover effects
+        for rect, text in [(classic_rect, classic_text), (time_rush_rect, time_rush_text), 
+                           (endless_rect, endless_text), (boss_rect, boss_text), (exit_rect, exit_text)]:
             if rect.collidepoint(pygame.mouse.get_pos()):
                 if hovered != rect:
                     hover_sound.play()
                     hovered = rect
-                pygame.draw.rect(screen, (255, 215, 0), rect.inflate(30, 15))
+                pygame.draw.rect(screen, (255, 69, 69), rect.inflate(30, 15), border_radius=15)  # Highlight button with red tint
             else:
-                pygame.draw.rect(screen, (139, 69, 19), rect.inflate(30, 15))
+                pygame.draw.rect(screen, (139, 0, 0), rect.inflate(30, 15), border_radius=15)  # Default button style with red tint
             screen.blit(text, rect)
 
+        # Handle events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -107,29 +139,27 @@ def main_menu(screen):
                 if classic_rect.collidepoint(event.pos):
                     click_sound.play()
                     pygame.mixer.music.stop()
-                    pygame.mixer.music.unload()  # Add unload here
+                    pygame.mixer.music.unload()
                     loading_screen(screen)
                     return  # Start Classic Mode
                 elif time_rush_rect.collidepoint(event.pos):
                     click_sound.play()
                     pygame.mixer.music.stop()
-                    pygame.mixer.music.unload()  # Add unload here
+                    pygame.mixer.music.unload()
                     loading_screen(screen)
-                    time_rush_mode(screen)  # Call the time rush mode
-                    # Restart menu music after returning from time rush mode
-                    pygame.mixer.music.load("./sound/Menu soundtrack.mp3")
-                    pygame.mixer.music.set_volume(0.5)
-                    pygame.mixer.music.play(-1)
+                    time_rush_mode(screen)
                 elif endless_rect.collidepoint(event.pos):
                     click_sound.play()
                     pygame.mixer.music.stop()
-                    pygame.mixer.music.unload()  # Add unload here
-                    loading_screen(screen)  # Add loading screen
-                    endless_horde_mode(screen)  # Call endless horde mode
-                    # Restart menu music after returning from endless mode
-                    pygame.mixer.music.load("./sound/Menu soundtrack.mp3")
-                    pygame.mixer.music.set_volume(0.5)
-                    pygame.mixer.music.play(-1)
+                    pygame.mixer.music.unload()
+                    loading_screen(screen)
+                    endless_horde_mode(screen)
+                elif boss_rect.collidepoint(event.pos):
+                    click_sound.play()
+                    pygame.mixer.music.stop()
+                    pygame.mixer.music.unload()
+                    loading_screen(screen)
+                    boss_mode(screen)
                 elif exit_rect.collidepoint(event.pos):
                     click_sound.play()
                     pygame.quit()
@@ -162,10 +192,10 @@ def pause_menu(screen):
             if not hovered_resume:
                 hover_sound.play()  # Play hover sound only once
                 hovered_resume = True
-            pygame.draw.rect(screen, (255, 215, 0), resume_rect.inflate(30, 15))  # Toggle button style
+            pygame.draw.rect(screen, (255, 69, 69), resume_rect.inflate(30, 15), border_radius=15)  # Highlight button with red tint
         else:
             hovered_resume = False
-            pygame.draw.rect(screen, (139, 69, 19), resume_rect.inflate(30, 15))  # Default button style
+            pygame.draw.rect(screen, (139, 0, 0), resume_rect.inflate(30, 15), border_radius=15)  # Default button style with red tint
 
         screen.blit(resume_text, resume_rect)
 
@@ -174,10 +204,10 @@ def pause_menu(screen):
             if not hovered_menu:
                 hover_sound.play()  # Play hover sound only once
                 hovered_menu = True
-            pygame.draw.rect(screen, (255, 215, 0), menu_rect.inflate(30, 15))  # Toggle button style
+            pygame.draw.rect(screen, (255, 69, 69), menu_rect.inflate(30, 15), border_radius=15)  # Highlight button with red tint
         else:
             hovered_menu = False
-            pygame.draw.rect(screen, (139, 69, 19), menu_rect.inflate(30, 15))  # Default button style
+            pygame.draw.rect(screen, (139, 0, 0), menu_rect.inflate(30, 15), border_radius=15)  # Default button style with red tint
 
         screen.blit(menu_text, menu_rect)
 
@@ -198,6 +228,11 @@ def pause_menu(screen):
 
 def time_rush_mode(screen, time_limit=300):
     '''Time Rush Mode: Survive until the timer runs out.'''
+    # Load powerup images
+    powerup_images = []
+    for file in os.listdir('powerups/'):
+        powerup_images.append(pygame.image.load('./powerups/' + file))
+
     # Initialize game elements
     background = pygame.transform.scale(pygame.image.load('./img/bg.jpg'), (1920, 1080))
     background = background.convert()
@@ -206,8 +241,10 @@ def time_rush_mode(screen, time_limit=300):
     pygame.mixer.music.load("./sound/InGame soundtrack.mp3")
     pygame.mixer.music.set_volume(0.5)
     pygame.mixer.music.play(-1)
+
+    # Load gun sound
     fire = pygame.mixer.Sound("./sound/bullet1.ogg")
-    fire.set_volume(0.5)
+    fire.set_volume(0.5)  # Ensure the volume is set to an audible level
 
     # Initialize player
     player = sprite_module.Player(screen)
@@ -292,8 +329,8 @@ def time_rush_mode(screen, time_limit=300):
                 bullet_img.add(bullet1)
                 bullet_hitbox.add(bullet2)
                 allSprites = pygame.sprite.OrderedUpdates(bullet_img, bullet_hitbox, player, zombieGroup, powerupGroup,
-                                                        health, armour, health_text, armour_text, timer_text, score_text, gold_text)
-                fire.play()
+                                                          health, armour, health_text, armour_text, timer_text, score_text, gold_text)
+                fire.play()  # Play the gun sound
 
         # Update player rotation
         player.rotate(pygame.mouse.get_pos())
@@ -310,22 +347,36 @@ def time_rush_mode(screen, time_limit=300):
                 if player_status[0][0] <= 0:
                     pygame.mixer.music.stop()
                     pygame.mixer.music.unload()
-                    if game_over_screen(screen):
-                        return
-                    break
+                    game_over_screen(screen, lambda: time_rush_mode(screen, time_limit))
+                    return
 
-        # Handle zombie kills and scoring
+        # Handle zombie damage from bullets
         hits = pygame.sprite.groupcollide(bullet_hitbox, zombieGroup, True, False)
         for bullet_hit in hits:
             for zombie in hits[bullet_hit]:
-                if not zombie.damage_hp(10):  # If zombie dies
-                    score += zombie.get_value()
-                    player.add_gold(2)
-                    zombie.kill()
-                    gold_text.set_variable(0, str(player.get_gold()))
+                if not zombie.damage_hp(bullet_hit.get_damage()):  # Reduce zombie health
+                    zombie.kill()  # Remove zombie if health is zero
+                    score += zombie.get_value()  # Increment score
+                    score_text.set_variable(0, str(score))  # Update score display
+                    player.add_gold(2)  # Add 2 gold per zombie kill
+                    gold_text.set_variable(0, str(player.get_gold()))  # Update gold display
+
+                    # After zombie death, chance to spawn powerup
+                    if random.random() < 0.15:  # Reduced from 0.2 to make powerups slightly rarer
+                        powerup_type = random.randint(0, 5)  # 0=speed, 1=double damage, 2=health, 3=armor, 4=ammo, 5=invincibility
+                        powerup = sprite_module.Powerup(
+                            zombie.rect.center,  # Spawn at dead zombie's position
+                            powerup_type,
+                            powerup_images[powerup_type]
+                        )
+                        powerupGroup.add(powerup)
+                        allSprites = pygame.sprite.OrderedUpdates(
+                            bullet_img, bullet_hitbox, player, zombieGroup, 
+                            powerupGroup, health, armour, health_text, 
+                            armour_text, timer_text, score_text, gold_text
+                        )
 
         # Update displays
-        score_text.set_variable(0, str(score))
         health.set_status(player_status[0][0])
         health_text.set_variable(0, str(player_status[0][0]))
         armour.set_status(player_status[1][0])
@@ -344,6 +395,11 @@ def time_rush_mode(screen, time_limit=300):
 
 def endless_horde_mode(screen):
     '''Endless Horde Mode: Survive as long as possible with continuously increasing difficulty.'''
+    # Load powerup images
+    powerup_images = []
+    for file in os.listdir('powerups/'):
+        powerup_images.append(pygame.image.load('./powerups/' + file))
+
     # Initialize game elements
     background = pygame.transform.scale(pygame.image.load('./img/bg.jpg'), (1920, 1080))
     background = background.convert()
@@ -352,8 +408,10 @@ def endless_horde_mode(screen):
     pygame.mixer.music.load("./sound/InGame soundtrack.mp3")
     pygame.mixer.music.set_volume(0.5)
     pygame.mixer.music.play(-1)
+
+    # Load gun sound
     fire = pygame.mixer.Sound("./sound/bullet1.ogg")
-    fire.set_volume(0.5)
+    fire.set_volume(0.5)  # Ensure the volume is set to an audible level
 
     # Initialize player and status
     player = sprite_module.Player(screen)
@@ -423,54 +481,60 @@ def endless_horde_mode(screen):
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 pause_menu(screen)
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                # Shooting mechanism
-                bullet1 = sprite_module.Bullet(bullet_images[0], player.get_angle(), 
-                                            player.rect.center, pygame.mouse.get_pos(), 12, 10, False)
-                bullet2 = sprite_module.Bullet(None, None, player.rect.center, 
-                                            pygame.mouse.get_pos(), 12, 10, False)
+                bullet1 = sprite_module.Bullet(bullet_images[0], player.get_angle(), player.rect.center, pygame.mouse.get_pos(), 12, 10, False)
+                bullet2 = sprite_module.Bullet(None, None, player.rect.center, pygame.mouse.get_pos(), 12, 10, False)
                 bullet_img.add(bullet1)
                 bullet_hitbox.add(bullet2)
-                allSprites = pygame.sprite.OrderedUpdates(bullet_img, bullet_hitbox, player, 
-                                                        zombieGroup, powerupGroup, health, armour, 
-                                                        health_text, armour_text, score_text, gold_text)
-                fire.play()
+                allSprites = pygame.sprite.OrderedUpdates(bullet_img, bullet_hitbox, player, zombieGroup, 
+                                                          powerupGroup, health, armour, health_text, 
+                                                          armour_text, score_text, gold_text)
+                fire.play()  # Play the gun sound
 
         # Update player rotation
         player.rotate(pygame.mouse.get_pos())
 
         # Handle collisions
         if pygame.sprite.spritecollide(player, zombieGroup, False):
-            if player_status[1][0] > 0:  # If there's armor
-                player_status[1][0] -= 5  # Damage armor first
+            if player_status[1][0] > 0:
+                player_status[1][0] -= 5
                 if player_status[1][0] < 0:
                     player_status[0][0] += player_status[1][0]
                     player_status[1][0] = 0
-            else:  # No armor, damage health directly
+            else:
                 player_status[0][0] -= 5
-
-            # Update displays
-            armour.set_status(player_status[1][0])
-            armour_text.set_variable(0, str(player_status[1][0]))
-
-            if player_status[0][0] <= 0:
-                pygame.mixer.music.stop()
-                pygame.mixer.music.unload()
-                if game_over_screen(screen):
+                if player_status[0][0] <= 0:
+                    pygame.mixer.music.stop()
+                    pygame.mixer.music.unload()
+                    game_over_screen(screen, lambda: endless_horde_mode(screen))
                     return
-                break
 
-        # Handle zombie kills and scoring
+        # Handle zombie damage from bullets
         hits = pygame.sprite.groupcollide(bullet_hitbox, zombieGroup, True, False)
         for bullet_hit in hits:
             for zombie in hits[bullet_hit]:
-                if not zombie.damage_hp(10):  # If zombie dies
-                    score += zombie.get_value()
-                    player.add_gold(2)
-                    zombie.kill()
-                    gold_text.set_variable(0, str(player.get_gold()))
+                if not zombie.damage_hp(bullet_hit.get_damage()):  # Reduce zombie health
+                    zombie.kill()  # Remove zombie if health is zero
+                    score += zombie.get_value()  # Increment score
+                    score_text.set_variable(0, str(score))  # Update score display
+                    player.add_gold(2)  # Add 2 gold per zombie kill
+                    gold_text.set_variable(0, str(player.get_gold()))  # Update gold display
+
+                    # After zombie death, chance to spawn powerup
+                    if random.random() < 0.15:  # Reduced from 0.2 to make powerups slightly rarer
+                        powerup_type = random.randint(0, 5)  # 0=speed, 1=double damage, 2=health, 3=armor, 4=ammo, 5=invincibility
+                        powerup = sprite_module.Powerup(
+                            zombie.rect.center,  # Spawn at dead zombie's position
+                            powerup_type,
+                            powerup_images[powerup_type]
+                        )
+                        powerupGroup.add(powerup)
+                        allSprites = pygame.sprite.OrderedUpdates(
+                            bullet_img, bullet_hitbox, player, zombieGroup, 
+                            powerupGroup, health, armour, health_text, 
+                            armour_text, score_text, gold_text
+                        )
 
         # Update displays
-        score_text.set_variable(0, str(score))
         health.set_status(player_status[0][0])
         health_text.set_variable(0, str(player_status[0][0]))
         armour.set_status(player_status[1][0])
@@ -523,6 +587,206 @@ def show_times_up_screen(screen, score):
         
         pygame.display.flip()
 
+def show_victory_screen(screen):
+    '''Displays the Victory screen after defeating the boss.'''
+    font = pygame.font.Font("American Captain.ttf", 100)
+    victory_text = font.render("Victory!", True, (0, 255, 0))
+    continue_text = font.render("Click anywhere to return to the main menu", True, (255, 255, 255))
+
+    victory_rect = victory_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 - 50))
+    continue_rect = continue_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 50))
+
+    waiting = True
+    while waiting:
+        screen.fill((0, 0, 0))
+        screen.blit(victory_text, victory_rect)
+        screen.blit(continue_text, continue_rect)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                waiting = False
+
+        pygame.display.flip()
+
+def boss_mode(screen):
+    '''Boss Mode: Similar to Classic Mode, but the last zombie in each wave is a boss.'''
+    # Load powerup images
+    powerup_images = []
+    for file in os.listdir('powerups/'):
+        powerup_images.append(pygame.image.load('./powerups/' + file))
+
+    # Load background and music
+    background = pygame.transform.scale(pygame.image.load('./img/bg.jpg'), (1920, 1080))
+    background = background.convert()
+
+    # Load bullet images - Add this section
+    bullet_images = []
+    for file in os.listdir('bullets/'):
+        bullet_images.append(pygame.image.load('./bullets/' + file))
+
+    # Initialize player first
+    player = sprite_module.Player(screen)
+    player.rect.center = (screen.get_width() // 2, screen.get_height() // 2)
+
+    # Health and armor setup
+    player_status = [[350, 350], [200, 200], 3]
+    health = sprite_module.StatusBar((10, 10), (255, 0, 0), (0, 0, 0), (250, 30), 350, 350, 0, None)
+    armour = sprite_module.StatusBar((10, 50), (238, 233, 233), (139, 137, 137), (250, 30), 200, 200, 0, None)
+    health_text = sprite_module.Text(25, (255, 255, 255), (135, 25), '350,350', '%s/%s', 255)
+    armour_text = sprite_module.Text(25, (0, 0, 0), (135, 65), '200,200', '%s/%s', 255)
+
+    # Score and gold setup
+    score = 0
+    score_text = sprite_module.Text(30, (255, 255, 255), (screen.get_width() // 2, 50), "0", "Score: %s", 255)
+    gold_text = sprite_module.Text(30, (255, 215, 0), (screen.get_width() // 2, 90), "0", "Gold: %s", 255)
+
+    # Initialize sprite groups
+    zombieGroup = pygame.sprite.Group()
+    bullet_img = pygame.sprite.Group()
+    bullet_hitbox = pygame.sprite.Group()
+    powerupGroup = pygame.sprite.Group()
+
+    # Now create allSprites after all components are initialized
+    allSprites = pygame.sprite.OrderedUpdates(bullet_img, bullet_hitbox, player, zombieGroup, 
+                                            powerupGroup, health, armour, health_text, 
+                                            armour_text, score_text, gold_text)
+
+    # Music setup
+    pygame.mixer.music.load("./sound/InGame soundtrack.mp3")
+    pygame.mixer.music.set_volume(0.5)
+    pygame.mixer.music.play(-1)
+
+    # Bullet sound
+    bullet_sound = pygame.mixer.Sound("./sound/bullet1.ogg")
+    bullet_sound.set_volume(0.5)
+
+    # Zombie setup
+    z_img = [pygame.image.load('./enemy/' + file) for file in os.listdir('enemy/')]
+    boss_image = pygame.image.load('./enemy/citizenzombieboss.png')
+
+    # Game loop setup
+    clock = pygame.time.Clock()
+    wave = 1
+    keepGoing = True
+
+    while keepGoing:
+        # Spawn zombies for the wave
+        num_zombies = 10 + wave * 2  # Increase number of zombies with each wave
+        for i in range(num_zombies):
+            if i == num_zombies - 1:  # Last zombie is the boss
+                boss = sprite_module.Zombie(screen, speed=2, damage=20, hp=500, attack_speed=50, value=1000, image=boss_image, zombie_type=99, player_pos=player.rect.center)
+                zombieGroup.add(boss)
+            else:  # Regular zombies
+                zombie = sprite_module.Zombie(screen, speed=2 + wave // 2, damage=10 + wave, hp=50 + wave * 10,
+                                              attack_speed=50, value=10, image=z_img[0], zombie_type=0, player_pos=player.rect.center)
+                zombieGroup.add(zombie)
+
+        # Update sprite groups
+        allSprites = pygame.sprite.OrderedUpdates(bullet_img, bullet_hitbox, player, zombieGroup, health, armour, health_text, armour_text, score_text, gold_text)
+
+        # Wave loop
+        while len(zombieGroup) > 0:
+            clock.tick(40)
+
+            # Handle input
+            keystate = pygame.key.get_pressed()
+            if keystate[pygame.locals.K_w]: player.go_up(screen)
+            if keystate[pygame.locals.K_s]: player.go_down(screen)
+            if keystate[pygame.locals.K_a]: player.go_left(screen)
+            if keystate[pygame.locals.K_d]: player.go_right(screen)
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    exit()
+                elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    pause_menu(screen)
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    bullet1 = sprite_module.Bullet(bullet_images[0], player.get_angle(), player.rect.center, pygame.mouse.get_pos(), 12, 10, False)
+                    bullet2 = sprite_module.Bullet(None, None, player.rect.center, pygame.mouse.get_pos(), 12, 10, False)
+                    bullet_img.add(bullet1)
+                    bullet_hitbox.add(bullet2)
+                    allSprites = pygame.sprite.OrderedUpdates(bullet_img, bullet_hitbox, player, zombieGroup, health, armour, health_text, armour_text, score_text, gold_text)
+                    bullet_sound.play()  # Play bullet sound
+
+            # Update player rotation
+            player.rotate(pygame.mouse.get_pos())
+
+            # Handle collisions
+            if pygame.sprite.spritecollide(player, zombieGroup, False):
+                if player_status[1][0] > 0:
+                    player_status[1][0] -= 5
+                    if player_status[1][0] < 0:
+                        player_status[0][0] += player_status[1][0]  # Subtract remaining damage from health
+                        player_status[1][0] = 0
+                else:
+                    player_status[0][0] -= 5
+
+                # Update displays
+                armour.set_status(player_status[1][0])
+                armour_text.set_variable(0, str(player_status[1][0]))
+
+                if player_status[0][0] <= 0:
+                    pygame.mixer.music.stop()
+                    pygame.mixer.music.unload()
+                    game_over_screen(screen, lambda: boss_mode(screen))
+                    return
+
+            # Handle zombie damage from bullets
+            hits = pygame.sprite.groupcollide(bullet_hitbox, zombieGroup, True, False)
+            for bullet_hit in hits:
+                for zombie in hits[bullet_hit]:
+                    if not zombie.damage_hp(bullet_hit.get_damage()):  # Reduce zombie health
+                        zombie.kill()  # Remove zombie if health is zero
+                        score += zombie.get_value()  # Increment score
+                        score_text.set_variable(0, str(score))  # Update score display
+                        player.add_gold(2)  # Add 2 gold per zombie kill
+                        gold_text.set_variable(0, str(player.get_gold()))  # Update gold display
+
+                        # After zombie death, chance to spawn powerup
+                        if random.random() < 0.15:  # Reduced from 0.2 to make powerups slightly rarer
+                            powerup_type = random.randint(0, 5)  # 0=speed, 1=double damage, 2=health, 3=armor, 4=ammo, 5=invincibility
+                            powerup = sprite_module.Powerup(
+                                zombie.rect.center,  # Spawn at dead zombie's position
+                                powerup_type,
+                                powerup_images[powerup_type]
+                            )
+                            powerupGroup.add(powerup)
+                            allSprites = pygame.sprite.OrderedUpdates(
+                                bullet_img, bullet_hitbox, player, zombieGroup, 
+                                powerupGroup, health, armour, health_text, 
+                                armour_text, score_text, gold_text
+                            )
+
+            # Update displays
+            health.set_status(player_status[0][0])
+            health_text.set_variable(0, str(player_status[0][0]))
+            armour.set_status(player_status[1][0])
+            armour_text.set_variable(0, str(player_status[1][0]))
+
+            # Update zombies
+            for zombie in zombieGroup:
+                zombie.rotate(player.rect.center)
+                zombie.set_step_amount(player.rect.center)
+
+            # Draw everything
+            screen.blit(background, (0, 0))
+            allSprites.update()
+            allSprites.draw(screen)
+            pygame.display.flip()
+
+        # Increment wave counter
+        wave += 1
+
+def damage_hp(self, damage):
+    self.hp -= damage
+    if self.hp <= 0:
+        return False  # Indicates the zombie is dead
+    return True  # Indicates the zombie is still alive
+
 def main():
     '''This function defines the 'mainline logic' for our game.'''
     while True:
@@ -558,17 +822,17 @@ def main():
         zombies = []
         zombie_types = [0] * 6 + [1, 2, 3, 4]  # 6 basic zombies + 4 special (total 10)
         random.shuffle(zombie_types)  # Randomize spawn order
-        
+
         for zombie_type in zombie_types:
             zombies.append(sprite_module.Zombie(screen, 
-                                             z_info[zombie_type][0], 
-                                             z_info[zombie_type][1], 
-                                             z_info[zombie_type][2], 
-                                             z_info[zombie_type][3], 
-                                             z_info[zombie_type][4], 
-                                             z_img[zombie_type], 
-                                             zombie_type, 
-                                             player.rect.center))
+                                                z_info[zombie_type][0], 
+                                                z_info[zombie_type][1], 
+                                                z_info[zombie_type][2], 
+                                                z_info[zombie_type][3], 
+                                                z_info[zombie_type][4], 
+                                                z_img[zombie_type], 
+                                                zombie_type, 
+                                                player.rect.center))
             wave[zombie_type] -= 1
     
         ammo = [[20, 30], [40, 20], [15, 10], [100, 10], [30, 30]]
@@ -585,19 +849,24 @@ def main():
         health = sprite_module.StatusBar((10, 10), (255, 0, 0), (0, 0, 0), (250, 30), 200, 350, 0, None)
         armour = sprite_module.StatusBar((10, 50), (238, 233, 233), (139, 137, 137), (250, 30), 100, 200, 0, None)
     
-    
         health_text = sprite_module.Text(25, (255, 255, 255), (135, 25), '350,350', '%s/%s', 255)
         armour_text = sprite_module.Text(25, (0, 0, 0), (135, 65), '200,200', '%s/%s', 255)
         wave_text = sprite_module.Text(30, (255, 255, 255), (450, 40), '0,1,' + str(sum(wave)), 'Score:%s Wave:%s Zombies Left:%s', 255)
         gold_text = sprite_module.Text(30, (255, 215, 0), (450, 80), '0', 'Gold: %s', 255)  # Gold color (255,215,0)
+
+        # Add this line to define score_text
+        score_text = sprite_module.Text(30, (255, 255, 255), (screen.get_width() // 2, 50), "0", "Score: %s", 255)
     
         powerupGroup = pygame.sprite.Group()
-        zombieGroup = pygame.sprite.Group(zombies)
+        zombieGroup = pygame.sprite.Group()
+        for zombie in zombies:
+            zombieGroup.add(zombie)
+
         bullet_img = pygame.sprite.Group()
         bullet_hitbox = pygame.sprite.Group()
         reloading = pygame.sprite.Group()
     
-        allSprites = pygame.sprite.OrderedUpdates(bullet_img, bullet_hitbox, player, zombieGroup, powerupGroup, reloading, health, armour, health_text, armour_text, wave_text, gold_text, ammo_text)
+        allSprites = pygame.sprite.OrderedUpdates(bullet_img, bullet_hitbox, player, zombieGroup, powerupGroup, reloading, health, armour, health_text, armour_text, wave_text, gold_text, ammo_text, score_text)
      
         clock = pygame.time.Clock()
         keepGoing = True
@@ -734,7 +1003,7 @@ def main():
                         if reload_status != True and ammo[current_weapon][1]:
                             reload = sprite_module.StatusBar((player.rect.center[0] - 40, player.rect.center[1] - 60), (0, 255, 0), (0, 0, 0), (70, 7), 0, 100, 1, reload_time[current_weapon])
                             reloading.add(reload)
-                            allSprites = pygame.sprite.OrderedUpdates(bullet_img, bullet_hitbox, player, zombieGroup, powerupGroup, reloading, health, armour, health_text, armour_text, wave_text, gold_text, ammo_text)
+                            allSprites = pygame.sprite.OrderedUpdates(bullet_img, bullet_hitbox, player, zombieGroup, powerupGroup, reloading, health, armour, health_text, armour_text, wave_text, gold_text, ammo_text, score_text)
                         reload_status = True
                     
                 elif event.type == pygame.MOUSEBUTTONUP:
@@ -742,29 +1011,34 @@ def main():
                         machine_gun_fire = False
             
                 elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_1 and weapon[0] and reload_status == False:
+                    if event.key == pygame.K_1 and weapon[0]:
                         current_weapon = 0
                         player.change_image(0)
                         machine_gun_fire = False
-                    
-                    elif event.key == pygame.K_2 and weapon[1] and reload_status == False:
+                        reload_status = False
+
+                    elif event.key == pygame.K_2 and weapon[1]:
                         current_weapon = 1
                         player.change_image(1)
                         machine_gun_fire = False
-                    
-                    elif event.key == pygame.K_3 and weapon[2] and reload_status == False:
+                        reload_status = False
+
+                    elif event.key == pygame.K_3 and weapon[2]:
                         current_weapon = 2
                         player.change_image(2)
                         machine_gun_fire = False
-                    
-                    elif event.key == pygame.K_4 and weapon[3] and reload_status == False:
+                        reload_status = False
+
+                    elif event.key == pygame.K_4 and weapon[3]:
                         current_weapon = 3
-                    
-                    elif event.key == pygame.K_5 and weapon[4] and reload_status == False:
+                        reload_status = False
+
+                    elif event.key == pygame.K_5 and weapon[4]:
                         current_weapon = 4
                         player.change_image(4)
                         machine_gun_fire = False
-                    
+                        reload_status = False
+
                     elif event.key == pygame.K_r:  # Reload key
                         if not reload_status and ammo[current_weapon][1] > 0:  # If not already reloading and has ammo clips
                             reload = sprite_module.StatusBar(
@@ -791,14 +1065,19 @@ def main():
                     if not(invincible_status):
                         if zombie.get_attack():
                             if player_status[1][0] > 0:
-                                player_status[1][0] = player_status[1][0] - zombie.get_damage()
+                                player_status[1][0] -= 5
                                 if player_status[1][0] < 0:
-                                    player_status[0][0] = player_status[0][0] + player_status[1][0]
+                                    player_status[0][0] += player_status[1][0]  # Subtract remaining damage from health
                                     player_status[1][0] = 0
                             else:
-                                player_status[0][0] = player_status[0][0] - zombie.get_damage()
+                                player_status[0][0] -= 5
+
                                 if player_status[0][0] <= 0:
-                                    keepGoing = False
+                                    pygame.mixer.music.stop()
+                                    pygame.mixer.music.unload()
+                                    game_over_screen(screen, lambda: boss_mode(screen))
+                                    return
+
             else:
                 for zombie in zombieGroup:
                     zombie.move(True)
@@ -812,41 +1091,26 @@ def main():
                         c[bullet][0].slow()
                     
                     else:
-                        if not c[bullet][0].damage_hp(bullet.get_damage()):
-                            wave[c[bullet][0].get_zombie_type()] = wave[c[bullet][0].get_zombie_type()] - 1
-                            powerup_chance = random.randint(0, 100)
-                            if powerup_chance == 0:
-                                powerup_status = True
-                                power = sprite_module.Powerup(c[bullet][0].rect.center, 5, powerup_images[5])
-                            
-                            elif powerup_chance == 1 or powerup_chance == 2:
-                                powerup_status = True
-                                power = sprite_module.Powerup(c[bullet][0].rect.center, 0, powerup_images[0])
-                        
-                            elif powerup_chance == 3 or powerup_chance == 4:
-                                powerup_status = True
-                                power = sprite_module.Powerup(c[bullet][0].rect.center, 1, powerup_images[1])
-                            
-                            elif powerup_chance == 5 or powerup_chance == 6:
-                                powerup_status = True
-                                power = sprite_module.Powerup(c[bullet][0].rect.center, 2, powerup_images[2])
-                        
-                            elif powerup_chance == 7 or powerup_chance == 8:
-                                powerup_status = True
-                                power = sprite_module.Powerup(c[bullet][0].rect.center, 3, powerup_images[3])
-                            
-                            elif powerup_chance == 9 or powerup_chance == 10 or powerup_chance == 11 or powerup_chance == 12:
-                                powerup_status = True
-                                power = sprite_module.Powerup(c[bullet][0].rect.center, 4, powerup_images[4])
-
-                            if powerup_status:
-                                powerupGroup.add(power)
-                                allSprites = pygame.sprite.OrderedUpdates(bullet_img, bullet_hitbox, player, zombieGroup, powerupGroup, reloading, health, armour, health_text, armour_text, wave_text, gold_text, ammo_text)
-                        
-                            score += c[bullet][0].get_value()
-                            player.add_gold(2)  # Add 2 gold per kill
+                        if not c[bullet][0].damage_hp(10):  # If zombie dies
+                            c[bullet][0].kill()  # Remove zombie from the game
+                            score += c[bullet][0].get_value()  # Increase score
+                            score_text.set_variable(0, str(score))  # Update score display
+                            player.add_gold(2)  # Add 2 gold per zombie kill
                             gold_text.set_variable(0, str(player.get_gold()))  # Update gold display
-                            c[bullet][0].kill()
+
+                            # After zombie death, chance to spawn powerup
+                            if random.random() < 0.15:  # Reduced from 0.2 to make powerups slightly rarer
+                                powerup_type = random.randint(0, 5)  # 0=speed, 1=double damage, 2=health, 3=armor, 4=ammo, 5=invincibility
+                                powerup = sprite_module.Powerup(
+                                    c[bullet][0].rect.center,  # Spawn at dead zombie's position
+                                    powerup_type,
+                                    powerup_images[powerup_type]
+                                )
+                                powerupGroup.add(powerup)
+                                allSprites = pygame.sprite.OrderedUpdates(bullet_img, bullet_hitbox, player, zombieGroup, 
+                                                                          powerupGroup, reloading, health, armour, 
+                                                                          health_text, armour_text, wave_text, gold_text, 
+                                                                          ammo_text, score_text)
                 
             y = pygame.sprite.spritecollide(player, powerupGroup, False)
             if y:
@@ -918,11 +1182,11 @@ def main():
             if invincible_status:         
                 invincible_timer += 1
         
-            if speed_timer == 450:
+            if speed_timer == 800:  # Was 450
                 player.reset_speed()
-            if damage_timer == 450:
+            if damage_timer == 800:  # Was 450
                 double_status = False
-            if invincible_timer == 450:
+            if invincible_timer == 800:  # Was 450
                 invincible_status = False
     
             # Update score, wave number, and remaining zombies display
@@ -947,96 +1211,34 @@ def main():
                 zombie.rotate(player.rect.center)
                 zombie.set_step_amount(player.rect.center)
         
-            # Boss wave (every 5th wave)
-            if wave_num % 5 == 0 and boss_spawn != True:
-                boss_spawn = True
-                # For boss waves: 1 boss + 9 regular zombies = 10 total
-                wave = [9, 0, 0, 0, 0, 0, 1]  # Reset wave composition for boss wave
-                
-                # Spawn boss first
-                zombie = sprite_module.Zombie(screen, z_info[6][0], z_info[6][1], z_info[6][2], 
-                                           z_info[6][3], z_info[6][4], z_img[6], 6, player.rect.center)
-                zombieGroup.add(zombie)
-                
-                # Spawn 9 regular zombies
-                for _ in range(9):
-                    zombie = sprite_module.Zombie(screen, z_info[0][0], z_info[0][1], z_info[0][2],
-                                               z_info[0][3], z_info[0][4], z_img[0], 0, player.rect.center)
-                    zombieGroup.add(zombie)
-                
-                allSprites = pygame.sprite.OrderedUpdates(bullet_img, bullet_hitbox, player, zombieGroup, 
-                                                        powerupGroup, reloading, health, armour, 
-                                                        health_text, armour_text, wave_text, gold_text, ammo_text)
-            elif wave_num % 5 > 0:
-                boss_spawn = False
-            
-            # Check if all zombies are defeated
             if len(zombieGroup) == 0:
-                # Show "Get ready for next wave" dialog
-                font = pygame.font.Font("American Captain.ttf", 50)
-                ready_text = font.render("Get Ready For The Next Wave!", True, (255, 255, 255))
-                ready_rect = ready_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
-                
-                # Create semi-transparent background
-                overlay = pygame.Surface((screen.get_width(), screen.get_height()))
-                overlay.fill((0, 0, 0))
-                overlay.set_alpha(128)
-                
-                # Draw dialog
-                screen.blit(overlay, (0, 0))
-                screen.blit(ready_text, ready_rect)
-                pygame.display.flip()
-                
-                # Wait for 3 seconds
-                pygame.time.delay(3000)
-                
                 wave_num += 1
-                # Calculate new enemy count (base 10 + 5 per wave)
+                # Spawn new zombies for the next wave
                 enemy_count = 10 + (wave_num - 1) * 5
-                
-                if wave_num % 5 == 0:  # Boss wave
-                    # Spawn boss first
-                    boss = sprite_module.Zombie(screen, z_info[6][0], z_info[6][1], z_info[6][2], 
-                                           z_info[6][3], z_info[6][4], z_img[6], 6, player.rect.center)
-                    zombieGroup.add(boss)
-                    
-                    # Spawn remaining enemies as basic zombies
-                    for _ in range(enemy_count - 1):
-                        zombie = sprite_module.Zombie(screen, z_info[0][0], z_info[0][1], z_info[0][2],
-                                                   z_info[0][3], z_info[0][4], z_img[0], 0, player.rect.center)
-                        zombieGroup.add(zombie)
-                else:
-                    # Regular wave: 60% basic, 40% special zombies
-                    basic_count = int(enemy_count * 0.6)
-                    special_count = enemy_count - basic_count
-                    special_per_type = special_count // 4
-                    
-                    # Spawn basic zombies
-                    for _ in range(basic_count):
-                        zombie = sprite_module.Zombie(screen, z_info[0][0], z_info[0][1], z_info[0][2],
-                                                   z_info[0][3], z_info[0][4], z_img[0], 0, player.rect.center)
-                        zombieGroup.add(zombie)
-                    
-                    # Spawn special zombies
-                    for type in range(1, 5):  # Special zombie types 1-4
-                        for _ in range(special_per_type):
-                            zombie = sprite_module.Zombie(screen, z_info[type][0], z_info[type][1], z_info[type][2],
-                                                       z_info[type][3], z_info[type][4], z_img[type], type, player.rect.center)
-                            zombieGroup.add(zombie)
-                
-                # Update sprite ordering
-                allSprites = pygame.sprite.OrderedUpdates(bullet_img, bullet_hitbox, player, zombieGroup,
-                                                        powerupGroup, reloading, health, armour,
-                                                        health_text, armour_text, wave_text, gold_text, ammo_text)
+                zombie_types = [0] * (enemy_count // 2) + [1, 2, 3, 4] * (enemy_count // 8)
+                random.shuffle(zombie_types)
 
-                
-            # Wave progression is handled in the previous block
+                for zombie_type in zombie_types:
+                    zombie = sprite_module.Zombie(screen, 
+                                                  z_info[zombie_type][0], 
+                                                  z_info[zombie_type][1], 
+                                                  z_info[zombie_type][2], 
+                                                  z_info[zombie_type][3], 
+                                                  z_info[zombie_type][4], 
+                                                  z_img[zombie_type], 
+                                                  zombie_type, 
+                                                  player.rect.center)
+                    zombieGroup.add(zombie)
+
+                allSprites = pygame.sprite.OrderedUpdates(bullet_img, bullet_hitbox, player, zombieGroup, powerupGroup, reloading, health, armour, health_text, armour_text, wave_text, gold_text, ammo_text, score_text)
         
             if player_status[0][0] <= 0:
                 print("Game Over triggered!")
                 pygame.mixer.music.stop()
-                game_over_screen(screen)
-                print("Returned from Game Over Screen") 
+                game_over_screen(screen, lambda: boss_mode(screen))
+                return
+
+            score_text.set_variable(0, str(score))  # Update score display
 
             screen.blit(background, (0, 0))
             allSprites.update()

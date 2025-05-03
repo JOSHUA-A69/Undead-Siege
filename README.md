@@ -25,16 +25,16 @@ A top-down zombie shooter made using pygame
 - More zombie types unlock as score increases
 - Basic weapon only
 
+### Boss Mode
+- Fight waves of zombies with a boss each wave
+- Bosses have higher health
+- Earn gold and score by defeating bosses and zombies
+- Multiple weapon types available
+
 ## Player Stats
 - HP: 350
 - Armour: 200
 
-## Weapons
-* Pistol
-* Uzi
-* Slow Gun (slows zombies)
-* Machine Gun (automatic fire)
-* Rail Gun (powerful piercing shot)
 
 ## Controls
 - WASD: Movement
