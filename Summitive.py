@@ -280,6 +280,14 @@ def time_rush_mode(screen, time_limit=300):
     allSprites = pygame.sprite.OrderedUpdates(bullet_img, bullet_hitbox, player, zombieGroup, powerupGroup,
                                             health, armour, health_text, armour_text, timer_text, score_text, gold_text)
 
+    # Powerup status variables
+    speed_timer = 0
+    damage_timer = 0
+    invincible_timer = 0
+    speed_status = False
+    double_status = False
+    invincible_status = False
+
     # Game loop setup
     clock = pygame.time.Clock()
     start_time = pygame.time.get_ticks()
@@ -376,6 +384,44 @@ def time_rush_mode(screen, time_limit=300):
                             armour_text, timer_text, score_text, gold_text
                         )
 
+        # Handle powerup collisions
+        powerup_hits = pygame.sprite.spritecollide(player, powerupGroup, True)
+        for powerup in powerup_hits:
+            powerup_type = powerup.get_type()
+            if powerup_type == 0:  # Speed boost
+                speed_timer = 0
+                speed_status = True
+                player.increase_speed()
+            elif powerup_type == 1:  # Double damage
+                double_status = True
+                damage_timer = 0
+            elif powerup_type == 2:  # Health restore
+                player_status[0][0] = min(player_status[0][0] + 100, player_status[0][1])
+            elif powerup_type == 3:  # Armor restore
+                player_status[1][0] = min(player_status[1][0] + 100, player_status[1][1])
+            elif powerup_type == 4:  # Ammo refill
+                pass
+            elif powerup_type == 5:  # Invincibility
+                invincible_status = True
+                invincible_timer = 0
+
+        # Update powerup timers
+        if speed_status:
+            speed_timer += 1
+            if speed_timer >= 800:  # 20 seconds at 40 fps
+                speed_status = False
+                player.reset_speed()
+        
+        if double_status:
+            damage_timer += 1
+            if damage_timer >= 800:
+                double_status = False
+        
+        if invincible_status:
+            invincible_timer += 1
+            if invincible_timer >= 800:
+                invincible_status = False
+
         # Update displays
         health.set_status(player_status[0][0])
         health_text.set_variable(0, str(player_status[0][0]))
@@ -440,6 +486,14 @@ def endless_horde_mode(screen):
     allSprites = pygame.sprite.OrderedUpdates(bullet_img, bullet_hitbox, player, zombieGroup, 
                                             powerupGroup, health, armour, health_text, 
                                             armour_text, score_text, gold_text)
+
+    # Powerup status variables
+    speed_timer = 0
+    damage_timer = 0
+    invincible_timer = 0
+    speed_status = False
+    double_status = False
+    invincible_status = False
 
     # Game variables
     clock = pygame.time.Clock()
@@ -533,6 +587,44 @@ def endless_horde_mode(screen):
                             powerupGroup, health, armour, health_text, 
                             armour_text, score_text, gold_text
                         )
+
+        # Handle powerup collisions
+        powerup_hits = pygame.sprite.spritecollide(player, powerupGroup, True)
+        for powerup in powerup_hits:
+            powerup_type = powerup.get_type()
+            if powerup_type == 0:  # Speed boost
+                speed_timer = 0
+                speed_status = True
+                player.increase_speed()
+            elif powerup_type == 1:  # Double damage
+                double_status = True
+                damage_timer = 0
+            elif powerup_type == 2:  # Health restore
+                player_status[0][0] = min(player_status[0][0] + 100, player_status[0][1])
+            elif powerup_type == 3:  # Armor restore
+                player_status[1][0] = min(player_status[1][0] + 100, player_status[1][1])
+            elif powerup_type == 4:  # Ammo refill
+                pass
+            elif powerup_type == 5:  # Invincibility
+                invincible_status = True
+                invincible_timer = 0
+
+        # Update powerup timers
+        if speed_status:
+            speed_timer += 1
+            if speed_timer >= 800:  # 20 seconds at 40 fps
+                speed_status = False
+                player.reset_speed()
+        
+        if double_status:
+            damage_timer += 1
+            if damage_timer >= 800:
+                double_status = False
+        
+        if invincible_status:
+            invincible_timer += 1
+            if invincible_timer >= 800:
+                invincible_status = False
 
         # Update displays
         health.set_status(player_status[0][0])
@@ -654,6 +746,14 @@ def boss_mode(screen):
                                             powerupGroup, health, armour, health_text, 
                                             armour_text, score_text, gold_text)
 
+    # Powerup status variables
+    speed_timer = 0
+    damage_timer = 0
+    invincible_timer = 0
+    speed_status = False
+    double_status = False
+    invincible_status = False
+
     # Music setup
     pygame.mixer.music.load("./sound/InGame soundtrack.mp3")
     pygame.mixer.music.set_volume(0.5)
@@ -760,6 +860,44 @@ def boss_mode(screen):
                                 powerupGroup, health, armour, health_text, 
                                 armour_text, score_text, gold_text
                             )
+
+            # Handle powerup collisions
+            powerup_hits = pygame.sprite.spritecollide(player, powerupGroup, True)
+            for powerup in powerup_hits:
+                powerup_type = powerup.get_type()
+                if powerup_type == 0:  # Speed boost
+                    speed_timer = 0
+                    speed_status = True
+                    player.increase_speed()
+                elif powerup_type == 1:  # Double damage
+                    double_status = True
+                    damage_timer = 0
+                elif powerup_type == 2:  # Health restore
+                    player_status[0][0] = min(player_status[0][0] + 100, player_status[0][1])
+                elif powerup_type == 3:  # Armor restore
+                    player_status[1][0] = min(player_status[1][0] + 100, player_status[1][1])
+                elif powerup_type == 4:  # Ammo refill
+                    pass
+                elif powerup_type == 5:  # Invincibility
+                    invincible_status = True
+                    invincible_timer = 0
+
+            # Update powerup timers
+            if speed_status:
+                speed_timer += 1
+                if speed_timer >= 800:  # 20 seconds at 40 fps
+                    speed_status = False
+                    player.reset_speed()
+            
+            if double_status:
+                damage_timer += 1
+                if damage_timer >= 800:
+                    double_status = False
+            
+            if invincible_status:
+                invincible_timer += 1
+                if invincible_timer >= 800:
+                    invincible_status = False
 
             # Update displays
             health.set_status(player_status[0][0])
