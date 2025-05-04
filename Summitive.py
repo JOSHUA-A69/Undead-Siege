@@ -83,7 +83,7 @@ def main_menu(screen):
     studio_font = pygame.font.Font("American Captain.ttf", 30)  # Smaller font for "JNL Studio"
 
     # Render texts
-    studio_text = studio_font.render("JNL Studio", True, (255, 255, 255))  # White color for "JNL Studio"
+    studio_text = studio_font.render("JNL Studio presents", True, (255, 255, 255))  # White color for "JNL Studio"
     title_text = font.render("Undead Siege", True, (255, 255, 255))
     classic_text = option_font.render("Classic Mode", True, (255, 255, 255))
     time_rush_text = option_font.render("Time Rush Mode", True, (255, 255, 255))
@@ -1351,24 +1351,46 @@ def main():
         
             if len(zombieGroup) == 0:
                 wave_num += 1
-                # Spawn new zombies for the next wave
+                # Check if it's a boss wave (every 5th wave)
+                is_boss_wave = wave_num % 5 == 0
+                
+                # Calculate number of enemies for this wave
                 enemy_count = 10 + (wave_num - 1) * 5
+                
+                # For boss waves, reduce regular enemies and add boss
+                if is_boss_wave:
+                    enemy_count = max(5, enemy_count // 2)  # Reduce regular enemies on boss waves
+                    # Create boss zombie
+                    boss = sprite_module.Zombie(screen, 
+                                              speed=2,
+                                              damage=20 + wave_num * 2, 
+                                              hp=500 + wave_num * 50,
+                                              attack_speed=50,
+                                              value=1000,
+                                              image=pygame.image.load('./enemy/citizenzombieboss.png'),
+                                              zombie_type=99,
+                                              player_pos=player.rect.center)
+                    zombieGroup.add(boss)
+                
+                # Spawn regular zombies
                 zombie_types = [0] * (enemy_count // 2) + [1, 2, 3, 4] * (enemy_count // 8)
                 random.shuffle(zombie_types)
 
                 for zombie_type in zombie_types:
                     zombie = sprite_module.Zombie(screen, 
-                                                  z_info[zombie_type][0], 
-                                                  z_info[zombie_type][1], 
-                                                  z_info[zombie_type][2], 
-                                                  z_info[zombie_type][3], 
-                                                  z_info[zombie_type][4], 
-                                                  z_img[zombie_type], 
-                                                  zombie_type, 
-                                                  player.rect.center)
+                                                z_info[zombie_type][0], 
+                                                z_info[zombie_type][1], 
+                                                z_info[zombie_type][2], 
+                                                z_info[zombie_type][3], 
+                                                z_info[zombie_type][4], 
+                                                z_img[zombie_type], 
+                                                zombie_type, 
+                                                player.rect.center)
                     zombieGroup.add(zombie)
 
-                allSprites = pygame.sprite.OrderedUpdates(bullet_img, bullet_hitbox, player, zombieGroup, powerupGroup, reloading, health, armour, health_text, armour_text, wave_text, gold_text, ammo_text, score_text)
+                allSprites = pygame.sprite.OrderedUpdates(bullet_img, bullet_hitbox, player, zombieGroup, 
+                                                        powerupGroup, reloading, health, armour, health_text, 
+                                                        armour_text, wave_text, gold_text, ammo_text, score_text)
         
             if player_status[0][0] <= 0:
                 print("Game Over triggered!")
