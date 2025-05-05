@@ -362,13 +362,20 @@ class Player(pygame.sprite.Sprite):
         '''returns current angle'''
         return self.__angle
     
-    def change_image(self,weapon):
-        '''accepts an index(weapon).Changes the player image based on index'''
-        #Set original image
-        self.image = self.__list[weapon]
-        self.image = self.image.convert_alpha()
-        
-        #Set saved image
+    def change_image(self, weapon):
+        '''accepts an index(weapon). Changes the player image based on index by loading the corresponding file.'''
+        # Load image dynamically based on weapon index
+        try:
+            image_path = f'./player/player_gun_{weapon+1}-0.png'
+            self.image = pygame.image.load(image_path)
+            self.image = self.image.convert_alpha()
+        except pygame.error as e:
+            print(f"Error loading player image: {image_path} - {e}")
+            # Optionally fall back to a default image or handle the error
+            # For now, let's keep the previous image if loading fails
+            return 
+
+        # Set saved image
         self.__saved_image = self.image
     
     def rotate(self,mouse_pos):

@@ -1077,11 +1077,79 @@ def main():
                 if event.type == pygame.QUIT:
                     keepGoing = False
                 elif event.type == pygame.KEYDOWN:
+                    key_name = pygame.key.name(event.key)
+                    print(f"Key pressed: {key_name}")
+                    print(f"Current weapon: {current_weapon}")
+                    print(f"Weapon availability: {weapon}")
+                    print(f"Ammo status: {ammo}")
+
                     if event.key == pygame.K_ESCAPE:
                         pause_menu(screen)
+                    elif event.key == pygame.K_1:
+                        if weapon[0]:
+                            print("Switching to weapon 1")
+                            current_weapon = 0
+                            player.change_image(0)
+                            machine_gun_fire = False
+                            reload_status = False
+                        else:
+                            no.play()
+                    elif event.key == pygame.K_2:
+                        if weapon[1]:
+                            print("Switching to weapon 2")
+                            current_weapon = 1
+                            player.change_image(1)
+                            machine_gun_fire = False
+                            reload_status = False
+                        else:
+                            no.play()
+                    elif event.key == pygame.K_3:
+                        if weapon[2]:
+                            print("Switching to weapon 3")
+                            current_weapon = 2
+                            player.change_image(2)
+                            machine_gun_fire = False
+                            reload_status = False
+                        else:
+                            no.play()
+                    elif event.key == pygame.K_4:
+                        if weapon[3]:
+                            print("Switching to weapon 4")
+                            current_weapon = 3
+                            player.change_image(3)
+                            machine_gun_fire = False
+                            reload_status = False
+                        else:
+                            no.play()
+                    elif event.key == pygame.K_5:
+                        if weapon[4]:
+                            print("Switching to weapon 5")
+                            current_weapon = 4
+                            player.change_image(4)
+                            machine_gun_fire = False
+                            reload_status = False
+                        else:
+                            no.play()
+                    elif event.key == pygame.K_r and not reload_status and ammo[current_weapon][1] > 0:
+                        print("Reloading weapon")
+                        reload = sprite_module.StatusBar(
+                            (player.rect.center[0] - 40, player.rect.center[1] - 60),
+                            (0, 255, 0), (0, 0, 0), (70, 7), 0, 100, 1,
+                            100 / (reload_time[current_weapon] * 40)
+                        )
+                        reloading.add(reload)
+                        allSprites = pygame.sprite.OrderedUpdates(
+                            bullet_img, bullet_hitbox, player, zombieGroup,
+                            powerupGroup, reloading, health, armour,
+                            health_text, armour_text, wave_text, gold_text, ammo_text, score_text
+                        )
+                        reload_status = True
 
                 elif event.type == pygame.MOUSEBUTTONDOWN:
-                    if current_weapon == 0 and ammo[0][0]:
+                    if reload_status:
+                        print("Cannot shoot while reloading!")
+                        no.play()  # Play the "no" sound when trying to shoot while reloading
+                    elif current_weapon == 0 and ammo[0][0]:
                         ammo[0][0] -= 1
                         # Create visual bullet and hitbox with same speed and damage
                         bullet_visual = sprite_module.Bullet(bullet_images[0], player.get_angle(), 
@@ -1147,53 +1215,6 @@ def main():
                 elif event.type == pygame.MOUSEBUTTONUP:
                     if current_weapon == 3:
                         machine_gun_fire = False
-            
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_1 and weapon[0]:
-                        current_weapon = 0
-                        player.change_image(0)
-                        machine_gun_fire = False
-                        reload_status = False
-
-                    elif event.key == pygame.K_2 and weapon[1]:
-                        current_weapon = 1
-                        player.change_image(1)
-                        machine_gun_fire = False
-                        reload_status = False
-
-                    elif event.key == pygame.K_3 and weapon[2]:
-                        current_weapon = 2
-                        player.change_image(2)
-                        machine_gun_fire = False
-                        reload_status = False
-
-                    elif event.key == pygame.K_4 and weapon[3]:
-                        current_weapon = 3
-                        reload_status = False
-
-                    elif event.key == pygame.K_5 and weapon[4]:
-                        current_weapon = 4
-                        player.change_image(4)
-                        machine_gun_fire = False
-                        reload_status = False
-
-                    elif event.key == pygame.K_r:  # Reload key
-                        if not reload_status and ammo[current_weapon][1] > 0:  # If not already reloading and has ammo clips
-                            reload = sprite_module.StatusBar(
-                                (player.rect.center[0] - 40, player.rect.center[1] - 60),
-                                (0, 255, 0), (0, 0, 0), (70, 7), 0, 100, 1, 
-                                reload_time[current_weapon]
-                            )
-                            reloading.add(reload)
-                            allSprites = pygame.sprite.OrderedUpdates(
-                                bullet_img, bullet_hitbox, player, zombieGroup,
-                                powerupGroup, reloading, health, armour,
-                                health_text, armour_text, wave_text, gold_text, ammo_text
-                            )
-                            reload_status = True
-
-                    elif event.key == pygame.K_1 or event.key == pygame.K_2 or event.key == pygame.K_3 or event.key == pygame.K_4 or event.key == pygame.K_5:
-                        no.play()
                     
             x = pygame.sprite.spritecollide(player, zombieGroup, False)
             if x:
@@ -1286,7 +1307,7 @@ def main():
                 
             player.rotate(pygame.mouse.get_pos())
         
-            if machine_gun_fire:
+            if machine_gun_fire and not reload_status:  # Only fire if not reloading
                 machine_gun_delay += 1
                 if machine_gun_delay % 3 == 0:
                     if ammo[3][0] > 0:  # Only fire if we have ammo
