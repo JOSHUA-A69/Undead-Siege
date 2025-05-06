@@ -11,7 +11,6 @@ A top-down zombie shooter made using pygame where you fight against endless hord
 - Wave-based survival with increasing difficulty
 - Weapons available:
   - Pistol
-  - Uzi
   - Slow Gun 
   - Machine Gun
   - Railgun
