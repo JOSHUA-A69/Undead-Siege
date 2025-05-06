@@ -56,12 +56,12 @@ A top-down zombie shooter made using pygame where you fight against endless hord
   - ESC: Pause menu
 
 ## Power-ups
-- Speed Boost: Increased movement speed (20 seconds)
-- Double Damage: Double weapon damage (20 seconds)
+- Speed Boost: Increased movement speed 
+- Double Damage: Double weapon damage 
 - Health Pack: Restore 100 HP
 - Armor Repair: Restore 100 Armor
 - Ammo Refill: Random weapon ammo refill
-- Invincibility: Temporary invulnerability (20 seconds)
+- Invincibility: Temporary invulnerability 
 
 ## Player Stats
 Base Statistics:
