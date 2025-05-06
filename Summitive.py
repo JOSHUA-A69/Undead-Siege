@@ -77,26 +77,38 @@ def loading_screen(screen):
     pygame.time.delay(2000)  # Simulate loading time
 
 def main_menu(screen):
-    '''Displays the main menu with game mode options.'''
+    '''Displays the main menu with game mode options in a more compact layout.'''
     font = pygame.font.Font("American Captain.ttf", 100)
     option_font = pygame.font.Font("American Captain.ttf", 50)
-    studio_font = pygame.font.Font("American Captain.ttf", 30)  # Smaller font for "JNL Studio"
+    studio_font = pygame.font.Font("American Captain.ttf", 30)
 
     # Render texts
-    studio_text = studio_font.render("JNL Studio presents", True, (255, 255, 255))  # White color for "JNL Studio"
+    studio_text = studio_font.render("J  N  L  Studio presents", True, (255, 255, 255))
     title_text = font.render("Undead Siege", True, (255, 255, 255))
     classic_text = option_font.render("Classic Mode", True, (255, 255, 255))
     time_rush_text = option_font.render("Time Rush Mode", True, (255, 255, 255))
     endless_text = option_font.render("Endless Horde Mode", True, (255, 255, 255))
     boss_text = option_font.render("Boss Mode", True, (255, 255, 255))
+    guide_text = option_font.render("Game Guide", True, (255, 255, 255))
     exit_text = option_font.render("Exit", True, (255, 255, 255))
 
-    # Define button positions
-    classic_rect = classic_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 - 100))
-    time_rush_rect = time_rush_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
-    endless_rect = endless_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 100))
-    boss_rect = boss_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 200))
-    exit_rect = exit_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 300))
+    # Adjust column positions to be closer to center
+    left_column_x = screen.get_width() // 2 - 150  # Reduced from 200
+    right_column_x = screen.get_width() // 2 + 150  # Reduced from 200
+    
+    # Adjust vertical spacing between buttons (reduced from 100 to 70)
+    button_spacing = 70
+    base_y = screen.get_height() // 2
+    
+    # Left column buttons
+    classic_rect = classic_text.get_rect(center=(left_column_x, base_y))
+    time_rush_rect = time_rush_text.get_rect(center=(left_column_x, base_y + button_spacing))
+    endless_rect = endless_text.get_rect(center=(left_column_x, base_y + button_spacing * 2))
+    
+    # Right column buttons
+    boss_rect = boss_text.get_rect(center=(right_column_x, base_y))
+    guide_rect = guide_text.get_rect(center=(right_column_x, base_y + button_spacing))
+    exit_rect = exit_text.get_rect(center=(right_column_x, base_y + button_spacing * 2))
 
     # Load menu background and music
     menu_bg = pygame.transform.scale(pygame.image.load('./img/MenuBG.png'), (1920, 1080))
@@ -112,22 +124,28 @@ def main_menu(screen):
     while True:
         screen.blit(menu_bg, (0, 0))
 
-        # Display "JNL Studio" above the title
-        screen.blit(studio_text, (screen.get_width() // 2 - studio_text.get_width() // 2, screen.get_height() // 2 - 400))
+        # Display studio name and title at the top
+        screen.blit(studio_text, (screen.get_width() // 2 - studio_text.get_width() // 2, screen.get_height() // 4))
+        screen.blit(title_text, (screen.get_width() // 2 - title_text.get_width() // 2, screen.get_height() // 3))
 
-        # Display the title
-        screen.blit(title_text, (screen.get_width() // 2 - title_text.get_width() // 2, screen.get_height() // 2 - 300))
+        # Draw buttons for both columns
+        left_buttons = [(classic_rect, classic_text), 
+                       (time_rush_rect, time_rush_text),
+                       (endless_rect, endless_text)]
+        
+        right_buttons = [(boss_rect, boss_text),
+                        (guide_rect, guide_text),
+                        (exit_rect, exit_text)]
 
-        # Draw buttons and handle hover effects
-        for rect, text in [(classic_rect, classic_text), (time_rush_rect, time_rush_text), 
-                           (endless_rect, endless_text), (boss_rect, boss_text), (exit_rect, exit_text)]:
+        # Draw all buttons
+        for rect, text in left_buttons + right_buttons:
             if rect.collidepoint(pygame.mouse.get_pos()):
                 if hovered != rect:
                     hover_sound.play()
                     hovered = rect
-                pygame.draw.rect(screen, (255, 69, 69), rect.inflate(30, 15), border_radius=15)  # Highlight button with red tint
+                pygame.draw.rect(screen, (255, 69, 69), rect.inflate(30, 15), border_radius=15)
             else:
-                pygame.draw.rect(screen, (139, 0, 0), rect.inflate(30, 15), border_radius=15)  # Default button style with red tint
+                pygame.draw.rect(screen, (139, 0, 0), rect.inflate(30, 15), border_radius=15)
             screen.blit(text, rect)
 
         # Handle events
@@ -160,6 +178,9 @@ def main_menu(screen):
                     pygame.mixer.music.unload()
                     loading_screen(screen)
                     boss_mode(screen)
+                elif guide_rect.collidepoint(event.pos):
+                    click_sound.play()
+                    show_guide(screen)
                 elif exit_rect.collidepoint(event.pos):
                     click_sound.play()
                     pygame.quit()
@@ -924,6 +945,63 @@ def damage_hp(self, damage):
     if self.hp <= 0:
         return False  # Indicates the zombie is dead
     return True  # Indicates the zombie is still alive
+
+def show_guide(screen):
+    '''Displays the game guide with controls and mechanics explanation.'''
+    font = pygame.font.Font("American Captain.ttf", 60)
+    text_font = pygame.font.Font("American Captain.ttf", 30)
+    
+    # Title
+    title_text = font.render("Game Guide", True, (255, 255, 255))
+    title_rect = title_text.get_rect(center=(screen.get_width() // 2, 100))
+    
+    # Guide content
+    guide_texts = [
+        ("Controls:", (255, 255, 255)),
+        ("WASD - Move character", (200, 200, 200)),
+        ("Mouse - Aim weapon", (200, 200, 200)),
+        ("Click - Shoot", (200, 200, 200)),
+        ("R - Reload weapon", (200, 200, 200)),
+        ("1-5 - Switch weapons", (200, 200, 200)),
+        ("ESC - Pause game", (200, 200, 200)),
+        ("", (255, 255, 255)),  # Empty line
+        ("Power-ups:", (255, 255, 255)),
+        ("Speed Boost - Increases movement speed", (200, 200, 200)),
+        ("Double Damage - Doubles weapon damage", (200, 200, 200)),
+        ("Health Pack - Restores 100 HP", (200, 200, 200)),
+        ("Armor Pack - Restores 100 Armor", (200, 200, 200)),
+        ("Ammo Pack - Refills random weapon ammo", (200, 200, 200)),
+        ("Invincibility - Temporary immunity", (200, 200, 200)),
+        ("", (255, 255, 255)),  # Empty line
+        ("Click anywhere to return", (255, 69, 69))
+    ]
+    
+    # Create fade overlay
+    overlay = pygame.Surface((screen.get_width(), screen.get_height()))
+    overlay.fill((0, 0, 0))
+    overlay.set_alpha(230)  # Slightly transparent
+    
+    waiting = True
+    while waiting:
+        screen.blit(overlay, (0, 0))
+        screen.blit(title_text, title_rect)
+        
+        # Display guide content
+        y_offset = 180
+        for text, color in guide_texts:
+            text_surface = text_font.render(text, True, color)
+            text_rect = text_surface.get_rect(center=(screen.get_width() // 2, y_offset))
+            screen.blit(text_surface, text_rect)
+            y_offset += 40
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                waiting = False
+                
+        pygame.display.flip()
 
 def main():
     '''This function defines the 'mainline logic' for our game.'''
