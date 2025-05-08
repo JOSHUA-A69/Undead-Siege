@@ -947,7 +947,7 @@ def damage_hp(self, damage):
     return True  # Indicates the zombie is still alive
 
 def show_guide(screen):
-    '''Displays the game guide with controls and mechanics explanation.'''
+    '''Displays the game guide with controls and mechanics explanation, including powerup images.'''
     font = pygame.font.Font("American Captain.ttf", 60)
     text_font = pygame.font.Font("American Captain.ttf", 30)
     
@@ -955,25 +955,33 @@ def show_guide(screen):
     title_text = font.render("Game Guide", True, (255, 255, 255))
     title_rect = title_text.get_rect(center=(screen.get_width() // 2, 100))
     
-    # Guide content
-    guide_texts = [
-        ("Controls:", (255, 255, 255)),
-        ("WASD - Move character", (200, 200, 200)),
-        ("Mouse - Aim weapon", (200, 200, 200)),
-        ("Click - Shoot", (200, 200, 200)),
-        ("R - Reload weapon", (200, 200, 200)),
-        ("1-5 - Switch weapons", (200, 200, 200)),
-        ("ESC - Pause game", (200, 200, 200)),
-        ("", (255, 255, 255)),  # Empty line
-        ("Power-ups:", (255, 255, 255)),
-        ("Speed Boost - Increases movement speed", (200, 200, 200)),
-        ("Double Damage - Doubles weapon damage", (200, 200, 200)),
-        ("Health Pack - Restores 100 HP", (200, 200, 200)),
-        ("Armor Pack - Restores 100 Armor", (200, 200, 200)),
-        ("Ammo Pack - Refills random weapon ammo", (200, 200, 200)),
-        ("Invincibility - Temporary immunity", (200, 200, 200)),
-        ("", (255, 255, 255)),  # Empty line
-        ("Click anywhere to return", (255, 69, 69))
+    # Load powerup images
+    powerup_images = []
+    for file in os.listdir('powerups/'):
+        img = pygame.image.load('./powerups/' + file)
+        # Scale images to a consistent size if needed
+        img = pygame.transform.scale(img, (40, 40))  # Adjust size as needed
+        powerup_images.append(img)
+    
+    # Guide content with positions for images
+    guide_content = [
+        ("Controls:", None, (255, 255, 255)),
+        ("WASD - Move character", None, (200, 200, 200)),
+        ("Mouse - Aim weapon", None, (200, 200, 200)),
+        ("Click - Shoot", None, (200, 200, 200)),
+        ("R - Reload weapon", None, (200, 200, 200)),
+        ("1-5 - Switch weapons", None, (200, 200, 200)),
+        ("ESC - Pause game", None, (200, 200, 200)),
+        ("", None, (255, 255, 255)),  # Empty line
+        ("Power-ups:", None, (255, 255, 255)),
+        ("Speed Boost - Increases movement speed", powerup_images[0], (200, 200, 200)),
+        ("Double Damage - Doubles weapon damage", powerup_images[1], (200, 200, 200)),
+        ("Health Pack - Restores 100 HP", powerup_images[2], (200, 200, 200)),
+        ("Armor Pack - Restores 100 Armor", powerup_images[3], (200, 200, 200)),
+        ("Ammo Pack - Refills random weapon ammo", powerup_images[4], (200, 200, 200)),
+        ("Invincibility - Temporary immunity", powerup_images[5], (200, 200, 200)),
+        ("", None, (255, 255, 255)),  # Empty line
+        ("Click anywhere to return", None, (255, 69, 69))
     ]
     
     # Create fade overlay
@@ -986,12 +994,18 @@ def show_guide(screen):
         screen.blit(overlay, (0, 0))
         screen.blit(title_text, title_rect)
         
-        # Display guide content
+        # Display guide content with images
         y_offset = 180
-        for text, color in guide_texts:
+        for text, image, color in guide_content:
             text_surface = text_font.render(text, True, color)
-            text_rect = text_surface.get_rect(center=(screen.get_width() // 2, y_offset))
+            text_rect = text_surface.get_rect(midleft=(screen.get_width() // 3, y_offset))
             screen.blit(text_surface, text_rect)
+            
+            # If there's an image for this line, display it
+            if image:
+                image_rect = image.get_rect(right=text_rect.left - 10, centery=text_rect.centery)
+                screen.blit(image, image_rect)
+            
             y_offset += 40
         
         for event in pygame.event.get():
