@@ -199,6 +199,12 @@ class Zombie(pygame.sprite.Sprite):
         self.__speed=self.__speed/2
         self.__slow=True
         
+    def restore_speed(self):
+        '''Restores the zombie's speed to its default value'''
+        self.__speed = self.__default_speed
+        self.__slow = False
+        self.__slow_counter = 0
+        
     def set_step_amount(self,player_pos):
         '''calculate step amount using player_pos and trig'''
         #Calculate distance and step amount
@@ -293,6 +299,17 @@ class Player(pygame.sprite.Sprite):
         # Initialize gold
         self.__gold = 0
         
+        # Add gun offset positions for bullet spawning
+        self.__gun_offsets = {
+            0: (40, 0),   # Pistol offset
+            1: (45, 2),   # Uzi offset
+            2: (50, -2),  # Slow gun offset
+            3: (42, 0),   # Machine gun offset
+            4: (48, 2)    # Last gun offset
+        }
+        self.__current_weapon = 0
+        self.__last_mouse_pos = None
+        
         #Create list of images
         self.__list = []
         for file in os.listdir('player/'):
@@ -362,76 +379,98 @@ class Player(pygame.sprite.Sprite):
         '''returns current angle'''
         return self.__angle
     
+    def get_bullet_spawn_pos(self):
+        """Returns the correct position where bullets should spawn based on current weapon"""
+        # Get the offset for the current weapon
+        offset_x, offset_y = self.__gun_offsets[self.__current_weapon]
+        
+        # Convert angle to radians
+        angle_rad = math.radians(self.__angle)
+        
+        # Calculate rotated offset
+        rotated_x = offset_x * math.cos(angle_rad) - offset_y * math.sin(angle_rad)
+        rotated_y = offset_x * math.sin(angle_rad) + offset_y * math.cos(angle_rad)
+        
+        # Return position adjusted by offset
+        return (self.rect.centerx + rotated_x, self.rect.centery + rotated_y)
+    
+    def set_weapon(self, weapon_index):
+        """Sets the current weapon and updates the player image"""
+        self.__current_weapon = weapon_index
+        self.change_image(weapon_index)
+        # If we have a last known mouse position, update rotation
+        if self.__last_mouse_pos:
+            self.rotate(self.__last_mouse_pos)
+    
+    def rotate(self,mouse_pos):
+        '''accepts mouse position and rotates player towards it'''
+        self.__last_mouse_pos = mouse_pos  # Store last mouse position
+        self.__angle = math.degrees(math.atan2(
+            self.rect.centerx-mouse_pos[0], 
+            self.rect.centery-mouse_pos[1]))
+        
+        self.image = pygame.transform.rotate(self.__saved_image, self.__angle)
+        self.rect = self.image.get_rect(center=self.rect.center)
+    
     def change_image(self, weapon):
-        '''accepts an index(weapon). Changes the player image based on index by loading the corresponding file.'''
-        # Load image dynamically based on weapon index
+        """Accepts an index(weapon). Changes the player image based on index."""
         try:
             image_path = f'./player/player_gun_{weapon+1}-0.png'
             self.image = pygame.image.load(image_path)
             self.image = self.image.convert_alpha()
+            self.__saved_image = self.image
+            # Maintain position when changing weapons
+            old_center = self.rect.center
+            self.rect = self.image.get_rect()
+            self.rect.center = old_center
         except pygame.error as e:
             print(f"Error loading player image: {image_path} - {e}")
-            # Optionally fall back to a default image or handle the error
-            # For now, let's keep the previous image if loading fails
-            return 
-
-        # Set saved image
-        self.__saved_image = self.image
-    
-    def rotate(self,mouse_pos):
-        '''accepts mouse position and rotates player towards it'''
-        self.__angle = math.degrees(math.atan2\
-              (self.rect.centerx-mouse_pos[0], self.rect.centery-mouse_pos[1]))
-        
-        self.image=pygame.transform.rotate\
-            (self.__saved_image, self.__angle)
-        
-        self.rect = self.image.get_rect(center=self.rect.center)
 
 class Bullet(pygame.sprite.Sprite):
     '''Has speed and damage varaibles. Rotates based on player's current angle.
     An image can be passed it and then it becomes a bullet_img, but if no
     image is passed in it becomes a bullet_hitbox'''
-    def __init__(self,image,angle,player_pos,mouse_pos,speed,damage,double_damage):
+    def __init__(self, image, angle, spawn_pos, mouse_pos, speed, damage, double_damage):
         pygame.sprite.Sprite.__init__(self)
         
-        #Assign the bullet damage to a variable
+        # Assign the bullet damage to a variable
         if double_damage:
-            self.__damage=damage*2
+            self.__damage = damage * 2
         else:
-            self.__damage=damage
-        self.__min_damage=damage
-        self.__max_damage=damage*2
+            self.__damage = damage
+        self.__min_damage = damage
+        self.__max_damage = damage * 2
         
-        #Assign the player position
-        self.__x=player_pos[0]
-        self.__y=player_pos[1]
+        # Use spawn position instead of player position
+        self.__x = spawn_pos[0]
+        self.__y = spawn_pos[1]
         
-        #Assign the mouse target position
-        self.__target_x=mouse_pos[0]
-        self.__target_y=mouse_pos[1]
+        # Assign the mouse target position
+        self.__target_x = mouse_pos[0]
+        self.__target_y = mouse_pos[1]
         
         if image:
-            self.image=image
+            self.image = image
             self.image.convert()
-            self.rect = self.image.get_rect() 
-            self.rect.center=(self.__x,self.__y)
-            self.image=pygame.transform.rotate\
-            (self.image, angle)
+            self.rect = self.image.get_rect()
+            self.rect.center = (self.__x, self.__y)
+            self.image = pygame.transform.rotate(self.image, angle)
             self.rect = self.image.get_rect(center=self.rect.center)
         else:
-            self.image=pygame.Surface((5,5))
+            self.image = pygame.Surface((5,5))
             self.image.fill((255,0,0))
             self.image.set_alpha(0)
             self.rect = self.image.get_rect()
-            self.rect.center=(self.__x,self.__y)
+            self.rect.center = (self.__x, self.__y)
         
-        #Calculate distance and step amount
-        self.__distance=math.sqrt\
-            (pow(self.__target_x-self.__x,2)+pow(self.__target_y-self.__y,2))
-        self.__animation_steps=self.__distance/speed
-        self.__dx=(self.__target_x-self.__x)/self.__animation_steps
-        self.__dy=(self.__target_y-self.__y)/self.__animation_steps
+        # Calculate distance and step amount
+        self.__distance = math.sqrt(
+            pow(self.__target_x - self.__x, 2) + 
+            pow(self.__target_y - self.__y, 2)
+        )
+        self.__animation_steps = self.__distance / speed
+        self.__dx = (self.__target_x - self.__x) / self.__animation_steps
+        self.__dy = (self.__target_y - self.__y) / self.__animation_steps
         
     def get_damage(self):
         '''get damage'''

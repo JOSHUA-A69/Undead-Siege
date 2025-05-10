@@ -726,6 +726,15 @@ def show_victory_screen(screen):
 
 def boss_mode(screen):
     '''Boss Mode: Similar to Classic Mode, but the last zombie in each wave is a boss.'''
+    # Add these status variables at the start of the function
+    speed_status = False
+    double_status = False
+    invincible_status = False
+    speed_timer = 0
+    damage_timer = 0
+    invincible_timer = 0
+    powerup_status = False
+
     # Load powerup images
     powerup_images = []
     for file in os.listdir('powerups/'):
@@ -735,7 +744,7 @@ def boss_mode(screen):
     background = pygame.transform.scale(pygame.image.load('./img/bg.jpg'), (1920, 1080))
     background = background.convert()
 
-    # Load bullet images - Add this section
+    # Load bullet images
     bullet_images = []
     for file in os.listdir('bullets/'):
         bullet_images.append(pygame.image.load('./bullets/' + file))
@@ -749,12 +758,30 @@ def boss_mode(screen):
     health = sprite_module.StatusBar((10, 10), (255, 0, 0), (0, 0, 0), (250, 30), 350, 350, 0, None)
     armour = sprite_module.StatusBar((10, 50), (238, 233, 233), (139, 137, 137), (250, 30), 200, 200, 0, None)
     health_text = sprite_module.Text(25, (255, 255, 255), (135, 25), '350,350', '%s/%s', 255)
-    armour_text = sprite_module.Text(25, (0, 0, 0), (135, 65), '200,200', '%s/%s', 255)
-
-    # Score and gold setup
+    armour_text = sprite_module.Text(25, (0, 0, 0), (135, 65), '200,200', '%s/%s', 255)    # Score and gold setup
     score = 0
-    score_text = sprite_module.Text(30, (255, 255, 255), (screen.get_width() // 2, 50), "0", "Score: %s", 255)
-    gold_text = sprite_module.Text(30, (255, 215, 0), (screen.get_width() // 2, 90), "0", "Gold: %s", 255)
+    score_text = sprite_module.Text(30, (255, 255, 255), (screen.get_width() // 2, 30), "0", "Score: %s", 255)
+    gold_text = sprite_module.Text(30, (255, 215, 0), (screen.get_width() // 2, 60), "0", "Gold: %s", 255)
+
+    # Add weapon and ammo system
+    ammo = [[20, 30], [40, 20], [15, 10], [100, 10], [30, 30]]  # [current, reserve]
+    ammo_capacity = [20, 40, 15, 100, 30]
+    weapon = [True, True, True, True, True]  # Available weapons
+    current_weapon = 0  # Start with first weapon
+    reload_time = [1.5, 2, 1, 0.5, 1.5]
+    reload_status = False
+    machine_gun_fire = False
+    machine_gun_delay = 0
+
+    # Add ammo text display
+    temp_string = ''
+    for index in range(len(ammo)):
+        temp_string += str(ammo[index][0]) + ',' + str(ammo[index][1]) + ','
+    ammo_text = sprite_module.Text(20, (255, 255, 255), (800, 80), temp_string.strip(','), 
+                                 '%s/%s          %s/%s          %s/%s          %s/%s          %s/%s', 255)
+
+    # Add reloading sprite group
+    reloading = pygame.sprite.Group()
 
     # Initialize sprite groups
     zombieGroup = pygame.sprite.Group()
@@ -762,18 +789,14 @@ def boss_mode(screen):
     bullet_hitbox = pygame.sprite.Group()
     powerupGroup = pygame.sprite.Group()
 
-    # Now create allSprites after all components are initialized
+    # Update allSprites to include ammo text and reloading
     allSprites = pygame.sprite.OrderedUpdates(bullet_img, bullet_hitbox, player, zombieGroup, 
-                                            powerupGroup, health, armour, health_text, 
-                                            armour_text, score_text, gold_text)
+                                            powerupGroup, reloading, health, armour, health_text, 
+                                            armour_text, score_text, gold_text, ammo_text)
 
-    # Powerup status variables
-    speed_timer = 0
-    damage_timer = 0
-    invincible_timer = 0
-    speed_status = False
-    double_status = False
-    invincible_status = False
+    # Add no ammo sound
+    no = pygame.mixer.Sound("./sound/no.ogg")
+    no.set_volume(0.8)
 
     # Music setup
     pygame.mixer.music.load("./sound/InGame soundtrack.mp3")
@@ -806,7 +829,7 @@ def boss_mode(screen):
                 zombieGroup.add(zombie)
 
         # Update sprite groups
-        allSprites = pygame.sprite.OrderedUpdates(bullet_img, bullet_hitbox, player, zombieGroup, health, armour, health_text, armour_text, score_text, gold_text)
+        allSprites = pygame.sprite.OrderedUpdates(bullet_img, bullet_hitbox, player, zombieGroup, health, armour, health_text, armour_text, score_text, gold_text, ammo_text)
 
         # Wave loop
         while len(zombieGroup) > 0:
@@ -819,29 +842,164 @@ def boss_mode(screen):
             if keystate[pygame.locals.K_a]: player.go_left(screen)
             if keystate[pygame.locals.K_d]: player.go_right(screen)
 
+            # Add this line to make player rotate towards mouse position
+            player.rotate(pygame.mouse.get_pos())
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     exit()
-                elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                    pause_menu(screen)
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        pause_menu(screen)
+                    # Weapon switching
+                    elif event.key == pygame.K_1:
+                        if weapon[0]:
+                            current_weapon = 0
+                            player.change_image(0)
+                            machine_gun_fire = False
+                            reload_status = False
+                        else:
+                            no.play()
+                    elif event.key == pygame.K_2:
+                        if weapon[1]:
+                            current_weapon = 1
+                            player.change_image(1)
+                            machine_gun_fire = False
+                            reload_status = False
+                        else:
+                            no.play()
+                    elif event.key == pygame.K_3:
+                        if weapon[2]:
+                            current_weapon = 2
+                            player.change_image(2)
+                            machine_gun_fire = False
+                            reload_status = False
+                        else:
+                            no.play()
+                    elif event.key == pygame.K_4:
+                        if weapon[3]:
+                            current_weapon = 3
+                            player.change_image(3)
+                            machine_gun_fire = False
+                            reload_status = False
+                        else:
+                            no.play()
+                    elif event.key == pygame.K_5:
+                        if weapon[4]:
+                            current_weapon = 4
+                            player.change_image(4)
+                            machine_gun_fire = False
+                            reload_status = False
+                        else:
+                            no.play()
+                    # Reloading
+                    elif event.key == pygame.K_r and not reload_status and ammo[current_weapon][1] > 0:
+                        reload = sprite_module.StatusBar(
+                            (player.rect.center[0] - 40, player.rect.center[1] - 60),
+                            (0, 255, 0), (0, 0, 0), (70, 7), 0, 100, 1,
+                            100 / (reload_time[current_weapon] * 40)
+                        )
+                        reloading.add(reload)
+                        allSprites = pygame.sprite.OrderedUpdates(
+                            bullet_img, bullet_hitbox, player, zombieGroup,
+                            powerupGroup, reloading, health, armour,
+                            health_text, armour_text, score_text, gold_text, ammo_text
+                        )
+                        reload_status = True
+
                 elif event.type == pygame.MOUSEBUTTONDOWN:
-                    bullet1 = sprite_module.Bullet(bullet_images[0], player.get_angle(), player.rect.center, pygame.mouse.get_pos(), 12, 10, False)
-                    bullet2 = sprite_module.Bullet(None, None, player.rect.center, pygame.mouse.get_pos(), 12, 10, False)
+                    if reload_status:
+                        no.play()
+                    elif current_weapon == 0 and ammo[0][0]:
+                        ammo[0][0] -= 1
+                        bullet1 = sprite_module.Bullet(bullet_images[0], player.get_angle(), 
+                                                     player.rect.center, pygame.mouse.get_pos(), 12, 2, double_status)
+                        bullet2 = sprite_module.Bullet(None, None, player.rect.center, pygame.mouse.get_pos(), 12, 2, double_status)
+                        bullet_img.add(bullet1)
+                        bullet_hitbox.add(bullet2)
+                        allSprites.add(bullet1, bullet2)
+                        bullet_sound.play()
+                    elif current_weapon == 1 and ammo[1][0]:
+                        ammo[1][0] -= 1
+                        bullet1 = sprite_module.Bullet(bullet_images[1], player.get_angle(), 
+                                                     player.rect.center, pygame.mouse.get_pos(), 16, 5, double_status)
+                        bullet2 = sprite_module.Bullet(None, None, player.rect.center, pygame.mouse.get_pos(), 16, 5, double_status)
+                        bullet_img.add(bullet1)
+                        bullet_hitbox.add(bullet2)
+                        allSprites.add(bullet1, bullet2)
+                        bullet_sound.play()
+                    elif current_weapon == 2 and ammo[2][0]:
+                        ammo[2][0] -= 1
+                        bullet1 = sprite_module.Bullet(bullet_images[2], player.get_angle(), 
+                                                     player.rect.center, pygame.mouse.get_pos(), 8, 15, double_status)
+                        bullet2 = sprite_module.Bullet(None, None, player.rect.center, pygame.mouse.get_pos(), 8, 15, double_status)
+                        bullet_img.add(bullet1)
+                        bullet_hitbox.add(bullet2)
+                        allSprites.add(bullet1, bullet2)
+                    elif current_weapon == 3 and ammo[3][0]:
+                        machine_gun_fire = True
+                    elif current_weapon == 4 and ammo[4][0]:
+                        ammo[4][0] -= 1
+                        bullet1 = sprite_module.RailGun(screen, player.rect.center, pygame.mouse.get_pos())
+                        bullet2 = sprite_module.Bullet(None, None, player.rect.center, pygame.mouse.get_pos(), 20, 20, double_status)
+                        bullet_img.add(bullet1)
+                        bullet_hitbox.add(bullet2)
+                        allSprites.add(bullet1, bullet2)
+                    else:
+                        if not reload_status and ammo[current_weapon][1] > 0:
+                            reload = sprite_module.StatusBar(
+                                (player.rect.center[0] - 40, player.rect.center[1] - 60),
+                                (0, 255, 0), (0, 0, 0), (70, 7), 0, 100, 1,
+                                100 / (reload_time[current_weapon] * 40)
+                            )
+                            reloading.add(reload)
+                            allSprites = pygame.sprite.OrderedUpdates(
+                                bullet_img, bullet_hitbox, player, zombieGroup,
+                                powerupGroup, reloading, health, armour,
+                                health_text, armour_text, score_text, gold_text, ammo_text
+                            )
+                            reload_status = True
+                        else:
+                            no.play()
+
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    if current_weapon == 3:
+                        machine_gun_fire = False
+
+            # Handle machine gun continuous fire
+            if machine_gun_fire and not reload_status:
+                machine_gun_delay += 1
+                if machine_gun_delay % 3 == 0 and ammo[3][0] > 0:
+                    ammo[3][0] -= 1
+                    bullet1 = sprite_module.Bullet(bullet_images[0], player.get_angle(), 
+                                                 player.rect.center, pygame.mouse.get_pos(), 14, 6, double_status)
+                    bullet2 = sprite_module.Bullet(None, None, player.rect.center, pygame.mouse.get_pos(), 14, 6, double_status)
                     bullet_img.add(bullet1)
                     bullet_hitbox.add(bullet2)
-                    allSprites = pygame.sprite.OrderedUpdates(bullet_img, bullet_hitbox, player, zombieGroup, health, armour, health_text, armour_text, score_text, gold_text)
-                    bullet_sound.play()  # Play bullet sound
+                    allSprites.add(bullet1, bullet2)
+                    bullet_sound.play()
 
-            # Update player rotation
-            player.rotate(pygame.mouse.get_pos())
+            # Handle reloading
+            if reload_status:
+                if reload.get_reload():
+                    ammo[current_weapon][0] = ammo_capacity[current_weapon]
+                    ammo[current_weapon][1] -= 1
+                    reload_status = False
+
+            # Update ammo text
+            index = 0
+            for i in range(5):
+                for n in range(2):
+                    ammo_text.set_variable(index, str(ammo[i][n]))
+                    index += 1
 
             # Handle collisions
             if pygame.sprite.spritecollide(player, zombieGroup, False):
                 if player_status[1][0] > 0:
                     player_status[1][0] -= 5
                     if player_status[1][0] < 0:
-                        player_status[0][0] += player_status[1][0]  # Subtract remaining damage from health
+                        player_status[0][0] += player_status[1][0]
                         player_status[1][0] = 0
                 else:
                     player_status[0][0] -= 5
@@ -878,8 +1036,8 @@ def boss_mode(screen):
                             powerupGroup.add(powerup)
                             allSprites = pygame.sprite.OrderedUpdates(
                                 bullet_img, bullet_hitbox, player, zombieGroup, 
-                                powerupGroup, health, armour, health_text, 
-                                armour_text, score_text, gold_text
+                                powerupGroup, reloading, health, armour, health_text, 
+                                armour_text, score_text, gold_text, ammo_text
                             )
 
             # Handle powerup collisions
