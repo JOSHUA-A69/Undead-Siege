@@ -4,6 +4,76 @@ pygame.init()
 pygame.mixer.init()
 screen = pygame.display.set_mode((1920, 1080), pygame.FULLSCREEN)
             
+def intro_screen(screen):
+    '''Displays the intro screen with studio name and game title'''
+    font = pygame.font.Font("American Captain.ttf", 100)
+    studio_font = pygame.font.Font("American Captain.ttf", 70)
+    option_font = pygame.font.Font("American Captain.ttf", 30)
+    
+    # Create text renders
+    studio_text = studio_font.render("J  N  L  Studio", True, (255, 255, 255))
+    presents_text = option_font.render("presents", True, (255, 255, 255))
+    title_text = font.render("Undead Siege", True, (255, 255, 255))
+    continue_text = option_font.render("Click anywhere to continue", True, (255, 255, 255))
+    
+    # Calculate positions
+    studio_rect = studio_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 - 100))
+    presents_rect = presents_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 - 40))
+    title_rect = title_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 50))
+    continue_rect = continue_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 150))
+    
+    # Load background and sounds
+    intro_bg = pygame.transform.scale(pygame.image.load('./img/MenuBG.png'), (1920, 1080))
+    click_sound = pygame.mixer.Sound("./sound/Button click.mp3")
+    
+    # Set up fade in
+    fade_alpha = 0
+    fade_surface = pygame.Surface((screen.get_width(), screen.get_height()))
+    fade_surface.fill((0, 0, 0))
+    
+    clock = pygame.time.Clock()
+    waiting = True
+    
+    while waiting:
+        clock.tick(60)
+        
+        # Draw background
+        screen.blit(intro_bg, (0, 0))
+        
+        # Apply fade effect
+        if fade_alpha < 255:
+            fade_alpha = min(fade_alpha + 3, 255)
+        fade_surface.set_alpha(255 - fade_alpha)
+        
+        # Draw text
+        screen.blit(studio_text, studio_rect)
+        screen.blit(presents_text, presents_rect)
+        screen.blit(title_text, title_rect)
+        if fade_alpha >= 255:  # Only show continue text after fade completes
+            screen.blit(continue_text, continue_rect)
+        
+        # Apply fade overlay
+        screen.blit(fade_surface, (0, 0))
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            elif event.type == pygame.MOUSEBUTTONDOWN and fade_alpha >= 255:
+                click_sound.play()
+                waiting = False
+        
+        pygame.display.flip()
+    
+    # Fade out
+    fade_alpha = 0
+    while fade_alpha < 255:
+        clock.tick(60)
+        fade_alpha = min(fade_alpha + 5, 255)
+        fade_surface.set_alpha(fade_alpha)
+        screen.blit(fade_surface, (0, 0))
+        pygame.display.flip()
+
 def game_over_screen(screen, restart_callback, is_classic_mode=False):
     '''Displays the Game Over screen with retry, back-to-menu, and main menu options.'''
     font = pygame.font.Font("American Captain.ttf", 100)  # Use American Captain font
@@ -83,7 +153,7 @@ def main_menu(screen):
     studio_font = pygame.font.Font("American Captain.ttf", 30)
 
     # Render texts
-    studio_text = studio_font.render("J  N  L  Studio presents", True, (255, 255, 255))
+    studio_text = studio_font.render("J  N  L  Studio ", True, (255, 255, 255))
     title_text = font.render("Undead Siege", True, (255, 255, 255))
     classic_text = option_font.render("Classic Mode", True, (255, 255, 255))
     time_rush_text = option_font.render("Time Rush Mode", True, (255, 255, 255))
@@ -1177,6 +1247,10 @@ def show_guide(screen):
 
 def main():
     '''This function defines the 'mainline logic' for our game.'''
+    
+    # Start with intro screen before entering the main game loop
+    intro_screen(screen)
+    
     while True:
         main_menu(screen)
 
