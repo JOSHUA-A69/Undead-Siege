@@ -5,6 +5,11 @@ A top-down zombie shooter made using pygame where you fight against endless hord
 - Python 3.x
 - Pygame 1.9.1 or higher
 
+## Installation
+1. Download `Undead-Siege-Full.zip` from the latest release
+2. Extract the ZIP file to any location
+3. Run `Undead Siege.exe` to play
+
 ## Game Modes
 
 ### Classic Mode
