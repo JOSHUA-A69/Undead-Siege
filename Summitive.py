@@ -1,14 +1,42 @@
 # I - Import and Initialize
-import pygame, pygame.locals, sprite_module, random, os
+import pygame, pygame.locals, sprite_module, random, os, sys
 pygame.init()
 pygame.mixer.init()
 screen = pygame.display.set_mode((1920, 1080), pygame.FULLSCREEN)
             
 def intro_screen(screen):
     '''Displays the intro screen with studio name and game title'''
-    font = pygame.font.Font("American Captain.ttf", 100)
-    studio_font = pygame.font.Font("American Captain.ttf", 70)
-    option_font = pygame.font.Font("American Captain.ttf", 30)
+    try:
+        # Try to get the absolute path for the font file
+        if getattr(sys, 'frozen', False):
+            # Running as compiled executable
+            base_path = sys._MEIPASS
+        else:
+            # Running as script
+            base_path = os.path.dirname(os.path.abspath(__file__))
+        
+        font_path = os.path.join(base_path, "American Captain.ttf")
+        font = pygame.font.Font(font_path, 100)
+        studio_font = pygame.font.Font(font_path, 70)
+        option_font = pygame.font.Font(font_path, 30)
+    except Exception as e:
+        print(f"Error loading font: {e}")
+        # Fallback to default font if custom font fails to load
+        font = pygame.font.SysFont(None, 100)
+        studio_font = pygame.font.SysFont(None, 70)
+        option_font = pygame.font.SysFont(None, 30)
+        if not os.path.exists(font_path):
+            # If that fails, try to get the absolute path from the executable's directory
+            if getattr(sys, 'frozen', False):
+                # Running as compiled executable
+                font_path = os.path.join(os.path.dirname(sys.executable), "American Captain.ttf")
+            else:
+                # Running as script
+                font_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "American Captain.ttf")
+        
+        font = pygame.font.Font(font_path, 100)
+        studio_font = pygame.font.Font(font_path, 70)
+        option_font = pygame.font.Font(font_path, 30)
     
     # Create text renders
     studio_text = studio_font.render("J  N  L  Studio", True, (255, 255, 255))
